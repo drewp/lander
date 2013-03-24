@@ -53,6 +53,8 @@ class Column
     @y = 200 + Math.random() * 200
     @gap = 100
 
+    @sliderOffset = Math.random() * .4 - .2
+
     @top.addChild(new paper.Path.Circle([
       Math.random() * @w,
       -Math.pow(Math.random(), 1.5) * 500], 5)) for i in [1..200]
@@ -69,8 +71,12 @@ class Column
       }
     @item.position = new paper.Point([@x1, @y])
 
-  setY: (y) ->
-    @y = y    
+  setFromSlider: (sliderValueNorm) ->
+    # incoming is 0.0 for top, 1.0 for bottom
+    correctCenter = paper.view.size.height / 2 - @gap / 2
+    trueOffset = (sliderValueNorm - .5) * 2 # -1 to 1
+    bumpedOffset = trueOffset + @sliderOffset
+    @y = correctCenter + 300 * bumpedOffset
   step: (dt) ->
     @item.position.y = @y
 
@@ -92,25 +98,23 @@ class Columns
     @item.addChild(c.item) for c in @cols
 
   byNum: (n) ->
-    return @cols[n - 1]
+    @cols[n - 1]
   step: (dt) ->
     c.step(dt) for c in @cols
-        
 
 $ ->
-  
-
   canvas = document.getElementById("game")
-  view = paper.setup(canvas).view
+  setup = paper.setup(canvas) 
+  view = setup.view
 
   ship = new Ship()
   columns = new Columns()
 
   onMessage = (d) ->
-    console.log "heard", d
     if d.sliderEvent
       se = d.sliderEvent
-      columns.byNum(byNumparseInt(se.name.replace("slider"))).setY(se.value)
+      n = parseInt(se.name.replace("slider", ""))
+      columns.byNum(n).setFromSlider((127 - se.value) / 127)
   reconnectingWebSocket "ws://localhost:9990/sliders", onMessage
   
   view.onFrame = (ev) ->
