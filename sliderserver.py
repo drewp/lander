@@ -17,9 +17,6 @@ class Hw(BCF2000):
         print "in" ,name, value
 
         sendToLiveClients({'sliderEvent':{'name':name, 'value':value}})
-        
-        if name == 'slider1':
-            self.valueOut('slider5', value)
 
 
 liveClients = set()
@@ -40,6 +37,9 @@ class Live(cyclone.websocket.WebSocketHandler):
 
     def messageReceived(self, message):
         log.info("got message %s" % message)
+
+        # self.valueOut('slider5', value)
+        
         self.sendMessage(message)
 
 class Index(cyclone.web.RequestHandler):
