@@ -10,7 +10,7 @@ reconnectingWebSocket = (url, onMessage) ->
     ws.onclose = ->
       pong = 1 - pong
       $("#status").text "disconnected (retrying " + ((if pong then "😼" else "😺")) + ")"
-      
+
       # this should be under a requestAnimationFrame to
       # save resources
       setTimeout connect, 2000
@@ -20,15 +20,104 @@ reconnectingWebSocket = (url, onMessage) ->
   pong = 0
   connect()
 
+showPreviews = false
+
 class Ship
-  constructor: ->
+  constructor: (columns) ->
+    @columns = columns
     @item = new paper.Group([])
 
-    @item.addChild(new paper.Raster('ship1.png').scale(.3))
+    @img = new paper.Raster('ship1.png')
+    @img.scale(.3)
+    @item.addChild(@img)
     @item.translate(new paper.Point(0, paper.view.size.height / 2))
 
+    @heading = new paper.Point(90, 0)
+    @accel = new paper.Point(0, 0)
+
+    @flyToward = new paper.Point(500, 100)
+  
+    if showPreviews
+      @flyTowardPreview = new paper.Path.Circle(@flyToward, 9)
+      @flyTowardPreview.style = {fillColor: 'white'}
+
+      @idealPreview = new paper.Path.Line([0,0], [0,0])
+      @idealPreview.style = {strokeColor: 'green'}
+
+      @currentPreview = new paper.Path.Line([0,0], [0,0])
+      @currentPreview.style = {strokeColor: 'blue'}
+  
+  updateFlyToward: ->
+#        |              ||               |
+#        |              ||               |
+#        +--------------+|               |
+#                        +---------------+
+#             gap1            gap2
+#        +--------------+
+#        |              |+---------------+
+#                        |               |
+
+    [c1, c2] = @columns.nextColumns(@item.matrix.translation.x)
+    if c1 == null
+      @flyToward = @item.matrix.translation.add([20, 0])
+    else
+      [gap1, gap2] = [c1.getGap(), c2.getGap()]
+
+      if showPreviews
+        @gap1Preview.remove() if @gap1Preview?; 
+        @gap2Preview.remove() if @gap2Preview?; 
+        (@gap1Preview = new paper.Path.Rectangle(gap1.expand(-2))).style = {strokeColor: '#ff0000'}
+        (@gap2Preview = new paper.Path.Rectangle(gap2)).style = {strokeColor: '#ffff00'}
+
+      topInt = paper.Point.max(gap1.topRight, gap2.topLeft)
+      botInt = paper.Point.min(gap1.bottomRight, gap2.bottomLeft)
+
+      if topInt.y >= botInt.y
+        # stuck; just hover
+        @flyToward = gap1.center
+      else
+        @flyToward = topInt.add(botInt).divide(2)
+
+    @flyTowardPreview.position = @flyToward if @flyTowardPreview?
+
+  updatePreviewLine: (path, pt, angle) ->
+    path.firstSegment.point = pt
+    path.lastSegment.point = pt.add(new paper.Point([100, 0]).rotate(angle))
+
+  setImageAngle: (angle) ->
+    @img.rotate(angle - @img.matrix.rotation)
+
+  updateHeading: (dt) ->
+    pos = @item.matrix.translation
+
+    idealAngle = @flyToward.subtract(pos).angle
+
+    $("#ship").text("angle "+Math.round(@heading.angle)+
+                    " ideal "+Math.round(idealAngle))
+    maxDegPerSec = 30
+
+    clampedIdealAngle = Math.min(80, Math.max(-80, idealAngle))
+
+    requiredTurn = clampedIdealAngle - @heading.angle
+    if Math.abs(requiredTurn) > 50
+      if @heading.length > .001
+        @heading = @heading.multiply(.7)
+    else
+      if @heading.length < 120
+        @heading = @heading.multiply(1.15)
+  
+    frameTurn = Math.min(maxDegPerSec * dt, Math.max(-maxDegPerSec * dt, requiredTurn))
+    @heading = @heading.rotate(frameTurn, [0, 0])
+    @setImageAngle(@heading.angle)
+
+    @updatePreviewLine(@idealPreview, pos, clampedIdealAngle) if @idealPreview?
+    @updatePreviewLine(@currentPreview, pos, @img.matrix.rotation) if @currentPreview?
+  
   step: (dt) ->
-    @item.translate([10 * dt, 0])
+    @updateFlyToward()
+    @updateHeading(dt)
+
+    @item.translate(@heading.multiply(dt))
 
   position: -> @item.matrix.translation
 
@@ -38,11 +127,11 @@ class Column
   # |
   # |
   # *------------ y
-  #              gap
-  # +------------  
+  #        gapHeight
+  # +------------
   # |
   # |
-  # 
+  #
   constructor: (x1, w) ->
     [@x1, @w] = [x1, w]
     @item = new paper.Group()
@@ -53,7 +142,7 @@ class Column
     @item.addChild(@bottom)
 
     @y = 200 + Math.random() * 200
-    @gap = 100
+    @gapHeight = 50
 
     @sliderOffset = Math.random() * .4 - .2
 
@@ -61,14 +150,14 @@ class Column
 
     @rockAreas = [
       new paper.Rectangle(new paper.Point([0,0]), new paper.Size(@w, -1000)),
-      new paper.Rectangle(new paper.Point([0,@gap]), new paper.Size(@w, 1000))]
+      new paper.Rectangle(new paper.Point([0,@gapHeight]), new paper.Size(@w, 1000))]
 
     @previewArea = new paper.CompoundPath(
          [new paper.Path.Rectangle(r) for r in @rockAreas])
     @item.addChild(@previewArea)
 
     @item.style = {strokeColor: 'black', strokeWidth: 1}
- 
+
     hue = 20 + Math.random() * 20
     @top.style = @bottom.style = {
       fillColor: new paper.HslColor(hue, .66, .41),
@@ -76,37 +165,44 @@ class Column
       strokeWidth: 2
       }
     @item.position = new paper.Point([@x1, @y])
-   
-    @item.translate(new paper.Point(@w/2, @gap/2)) # fixes some other error
+
+    @top.translate(new paper.Point(@w/2, @gapHeight/2)) # fixes some other error
+    @bottom.translate(new paper.Point(@w/2, @gapHeight/2)) # fixes some other error
 
   makeRocks: ->
-    rad = 10
+    randWithin = (a,b,exp) -> a + (b-a)*Math.pow(Math.random(), exp or 1)
+
+    rad = 16
     @top.addChild(new paper.Path.Circle([
-      Math.random() * @w,
-      -Math.pow(Math.random(), 1.5) * 500], rad)) for i in [1..100]
+      randWithin(rad, @w - rad),
+      randWithin(0 - rad, -400, 1.5)], rad)) for i in [1..100]
 
     @bottom.addChild(new paper.Path.Circle([
-      Math.random() * @w,
-      @gap + Math.pow(Math.random(), 1.5) * 500], rad)) for i in [1..100]
+      randWithin(rad, @w - rad),
+      randWithin(@gapHeight + rad, 400, 1.5)], rad)) for i in [1..100]
 
-  gapCenter: ->
-    new paper.Point([@x1 + @w / 2, @y + @gap / 2])
+  getGap: ->
+    # returns gap rectangle in world space
+    new paper.Rectangle(@item.position, [@w, @gapHeight])
+
+  offsetY: (dy) ->
+    @y += dy
 
   setFromSlider: (sliderValueNorm) ->
     # incoming is 0.0 for top, 1.0 for bottom
-    correctCenter = paper.view.size.height / 2 - @gap / 2
+    correctCenter = paper.view.size.height / 2 - @gapHeight / 2
     trueOffset = (sliderValueNorm - .5) * 2 # -1 to 1
     bumpedOffset = trueOffset + @sliderOffset
     @y = correctCenter + 300 * bumpedOffset
 
   step: (dt) ->
-    0#@item.position.y = @y
+    @item.position.y = @y
 
 class Columns
   constructor: ->
     @item = new paper.Group()
 
-    w = 97
+    w = 100
     @cols = [
       new Column(1*100, w)
       new Column(2*100, w)
@@ -120,19 +216,20 @@ class Columns
 
     @item.addChild(c.item) for c in @cols
 
-    @_bestPath = new paper.Path()
-    @_bestPath.style = {strokeColor: 'yellow', strokeWidth: 3}
+  nextColumns: (x) ->
+    # first column is the one the ship is roughly in, or (just
+    # started?) will start in.
+    # Second column is the one after that, usually
+    for i in [0..@cols.length-1]
+      if @cols[i].x1 > x + 10
+        return [@cols[Math.max(0, i-1)], @cols[i]]
+    return [null, null]
 
-  updateBestPath: (ship) ->
-    # maintain a Path from the given ship pos to the end, as far as we can go
-    @_bestPath.removeSegments()
-    @_bestPath.add(ship.position())
-    x = ship.position().x
+  withinColumn: (x) ->
     for col in @cols
-      if col.x1 > x
-        @_bestPath.add(col.gapCenter())
-    #@_bestPath.smooth()
-    @_bestPath
+      if col.x1 <= x < col.x1 + col.w
+        return col
+    return null
 
   byNum: (n) ->
     @cols[n - 1]
@@ -142,11 +239,11 @@ class Columns
 
 $ ->
   canvas = document.getElementById("game")
-  setup = paper.setup(canvas) 
+  setup = paper.setup(canvas)
   view = setup.view
 
-  ship = new Ship()
   columns = new Columns()
+  ship = new Ship(columns)
 
   onMessage = (d) ->
     if d.sliderEvent
@@ -158,7 +255,9 @@ $ ->
   view.onFrame = (ev) ->
     ship.step(ev.delta)
     columns.step(ev.delta)
-    columns.updateBestPath(ship)
 
-  #view.onKeyDown = (ev) -> console.log("down", ev);
-  view.onMouseDown = (ev) -> console.log("drag", ev);
+  tool = new paper.Tool()
+  tool.onMouseDrag = (ev) ->
+    col = columns.withinColumn(ev.point.x)
+    if col
+      col.offsetY(ev.delta.y)
