@@ -21,20 +21,21 @@ reconnectingWebSocket = (url, onMessage) ->
   connect()
 
 
-showPreviews = false
+showPreviews = true
 
 
 class Exhaust
   constructor: (getSource) ->
     @getSource = getSource
 
-    @img = new paper.Raster('smoke1.png')
+    @img = new paper.Raster('img/smoke1.png')
     @img.opacity = .2
 
     @pts = []
     @bornPerSec = 2
     @totalAlive = 500
     @driftVel = 1.3
+
   step: (dt) ->
     s = @getSource()
     for i in [0...@bornPerSec*dt]
@@ -45,6 +46,7 @@ class Exhaust
       @pts.push(p)
     for p in @pts
       p.position = p.position.add(p.vel.multiply(dt))
+      p.opacity *= Math.pow(.92, dt)
     if @pts.length > @totalAlive
       for p in @pts[0..@pts.length-@totalAlive]
         p.remove()
@@ -56,7 +58,7 @@ class Ship
     @columns = columns
     @item = new paper.Group([])
 
-    @img = new paper.Raster('ship1.png')
+    @img = new paper.Raster('img/ship1.png')
     @img.scale(.3)
     @item.addChild(@img)
     @item.translate(new paper.Point(0, paper.view.size.height / 2))
@@ -150,6 +152,9 @@ class Ship
     @updateHeading(dt)
 
     @item.translate(@heading.multiply(dt))
+    if @item.matrix.translateX > 1000
+      @item.position = [0, 300]
+      
 
   position: -> @item.matrix.translation
 
@@ -164,59 +169,50 @@ class Column
   # |
   # |
   #
-  constructor: (x1, w, gap) ->
+  constructor: (i, x1, w, gap) ->
+    # i is 1-based index
     [@x1, @w] = [x1, w]
     @item = new paper.Group()
     # item's origin is at the * in the diagram
-    @top = new paper.Group()
-    @bottom = new paper.Group()
-    @item.addChild(@top)
-    @item.addChild(@bottom)
 
     @y = 200 + Math.random() * 200
     @gapHeight = gap
 
     @sliderOffset = Math.random() * .4 - .2
 
-    @makeRocks()
-
     @rockAreas = [
       new paper.Rectangle(new paper.Point([0,0]), new paper.Size(@w, -1000)),
       new paper.Rectangle(new paper.Point([0,@gapHeight]), new paper.Size(@w, 1000))]
 
-    @previewArea = new paper.CompoundPath(
-         [new paper.Path.Rectangle(r) for r in @rockAreas])
-    @item.addChild(@previewArea)
+    @addPreviews()
 
-    @item.style = {strokeColor: 'black', strokeWidth: 1}
+    @top = new paper.Group()
+    @bottom = new paper.Group()
+    @item.addChild(@top)
+    @item.addChild(@bottom)
 
-    hue = 20 + Math.random() * 20
-    @top.style = @bottom.style = {
-      fillColor: new paper.HslColor(hue, .66, .41),
-      strokeColor: new paper.HslColor(hue, .66, .20),
-      strokeWidth: 2
-      }
-    @item.position = new paper.Point([@x1, @y])
+    @addRockImages(i)
 
-    @top.translate(   new paper.Point(@w/2, 0)) # fixes some other error
-    @bottom.translate(new paper.Point(@w/2, 0)) # fixes some other error
+    @item.translate(@x1, @y)
 
-  makeRocks: ->
-    randWithin = (a,b,exp) -> a + (b-a)*Math.pow(Math.random(), exp or 1)
+#    @top.translate(   new paper.Point(@w/2, 0)) # fixes some other error
+#    @bottom.translate(new paper.Point(@w/2, 0)) # fixes some other error
 
-    rad = 16
-    n = 60
-    @top.addChild(new paper.Path.Circle([
-      randWithin(rad, @w - rad),
-      randWithin(0 - rad, -400, 1.5)], rad)) for i in [1..n]
 
-    @bottom.addChild(new paper.Path.Circle([
-      randWithin(rad, @w - rad),
-      randWithin(@gapHeight + rad, 400, 1.5)], rad)) for i in [1..n]
+  addPreviews: ->
+    previewArea = new paper.Group()
+    previewArea.addChild(new paper.Path.Rectangle(r)) for r in @rockAreas
+    previewArea.style = {strokeColor: 'white', strokeWidth: 1}
+    @item.addChild(previewArea)
+
+  addRockImages: (i) ->
+    img = "img/rock"+i+".png"
+    @top.addChild(new paper.Raster(img).translate([@w/2, -600]))
+    @bottom.addChild(new paper.Raster(img).translate([@w/2, @gapHeight+600]))
 
   getGap: ->
     # returns gap rectangle in world space
-    new paper.Rectangle(@item.position, [@w, @gapHeight])
+    new paper.Rectangle([@x1, @y], [@w, @gapHeight])
 
   offsetY: (dy) ->
     @y += dy
@@ -229,7 +225,7 @@ class Column
     @y = correctCenter + 300 * bumpedOffset
 
   step: (dt) ->
-    @item.position.y = @y
+    @item.matrix.translateY = @y
 
 class Columns
   constructor: ->
@@ -237,14 +233,14 @@ class Columns
 
     w = 100
     @cols = [
-      new Column(1*100, w, 100)
-      new Column(2*100, w, 90)
-      new Column(3*100, w, 80)
-      new Column(4*100, w, 70)
-      new Column(5*100, w, 60)
-      new Column(6*100, w, 50)
-      new Column(7*100, w, 40)
-      new Column(8*100, w, 30)
+      new Column(1, 1*100, w, 100)
+      new Column(2, 2*100, w, 90)
+      new Column(3, 3*100, w, 80)
+      new Column(4, 4*100, w, 70)
+      new Column(5, 5*100, w, 60)
+      new Column(6, 6*100, w, 50)
+      new Column(7, 7*100, w, 40)
+      new Column(8, 8*100, w, 30)
       ]
 
     @item.addChild(c.item) for c in @cols
