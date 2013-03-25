@@ -20,7 +20,36 @@ reconnectingWebSocket = (url, onMessage) ->
   pong = 0
   connect()
 
+
 showPreviews = false
+
+
+class Exhaust
+  constructor: (getSource) ->
+    @getSource = getSource
+
+    @img = new paper.Raster('smoke1.png')
+    @img.opacity = .2
+
+    @pts = []
+    @bornPerSec = 2
+    @totalAlive = 500
+    @driftVel = 1.3
+  step: (dt) ->
+    s = @getSource()
+    for i in [0...@bornPerSec*dt]
+      p = @img.clone()
+      p.rotation = Math.random() * 360
+      p.position = s.add(paper.Point.random().multiply(8))
+      p.vel = paper.Point.random().multiply(@driftVel * 2).subtract(@driftVel)
+      @pts.push(p)
+    for p in @pts
+      p.position = p.position.add(p.vel.multiply(dt))
+    if @pts.length > @totalAlive
+      for p in @pts[0..@pts.length-@totalAlive]
+        p.remove()
+  
+      @pts[0..@pts.length-@totalAlive] = []
 
 class Ship
   constructor: (columns) ->
@@ -39,13 +68,16 @@ class Ship
   
     if showPreviews
       @flyTowardPreview = new paper.Path.Circle(@flyToward, 9)
-      @flyTowardPreview.style = {fillColor: 'white'}
+      @flyTowardPreview.style = {strokeColor: 'white'}
 
       @idealPreview = new paper.Path.Line([0,0], [0,0])
       @idealPreview.style = {strokeColor: 'green'}
 
       @currentPreview = new paper.Path.Line([0,0], [0,0])
       @currentPreview.style = {strokeColor: 'blue'}
+
+  getExhaustSource: ->
+    @item.matrix.translation # should be the rotated tail point with direction
   
   updateFlyToward: ->
 #        |              ||               |
@@ -132,7 +164,7 @@ class Column
   # |
   # |
   #
-  constructor: (x1, w) ->
+  constructor: (x1, w, gap) ->
     [@x1, @w] = [x1, w]
     @item = new paper.Group()
     # item's origin is at the * in the diagram
@@ -142,7 +174,7 @@ class Column
     @item.addChild(@bottom)
 
     @y = 200 + Math.random() * 200
-    @gapHeight = 50
+    @gapHeight = gap
 
     @sliderOffset = Math.random() * .4 - .2
 
@@ -166,20 +198,21 @@ class Column
       }
     @item.position = new paper.Point([@x1, @y])
 
-    @top.translate(new paper.Point(@w/2, @gapHeight/2)) # fixes some other error
-    @bottom.translate(new paper.Point(@w/2, @gapHeight/2)) # fixes some other error
+    @top.translate(   new paper.Point(@w/2, 0)) # fixes some other error
+    @bottom.translate(new paper.Point(@w/2, 0)) # fixes some other error
 
   makeRocks: ->
     randWithin = (a,b,exp) -> a + (b-a)*Math.pow(Math.random(), exp or 1)
 
     rad = 16
+    n = 60
     @top.addChild(new paper.Path.Circle([
       randWithin(rad, @w - rad),
-      randWithin(0 - rad, -400, 1.5)], rad)) for i in [1..100]
+      randWithin(0 - rad, -400, 1.5)], rad)) for i in [1..n]
 
     @bottom.addChild(new paper.Path.Circle([
       randWithin(rad, @w - rad),
-      randWithin(@gapHeight + rad, 400, 1.5)], rad)) for i in [1..100]
+      randWithin(@gapHeight + rad, 400, 1.5)], rad)) for i in [1..n]
 
   getGap: ->
     # returns gap rectangle in world space
@@ -204,14 +237,14 @@ class Columns
 
     w = 100
     @cols = [
-      new Column(1*100, w)
-      new Column(2*100, w)
-      new Column(3*100, w)
-      new Column(4*100, w)
-      new Column(5*100, w)
-      new Column(6*100, w)
-      new Column(7*100, w)
-      new Column(8*100, w)
+      new Column(1*100, w, 100)
+      new Column(2*100, w, 90)
+      new Column(3*100, w, 80)
+      new Column(4*100, w, 70)
+      new Column(5*100, w, 60)
+      new Column(6*100, w, 50)
+      new Column(7*100, w, 40)
+      new Column(8*100, w, 30)
       ]
 
     @item.addChild(c.item) for c in @cols
@@ -244,6 +277,7 @@ $ ->
 
   columns = new Columns()
   ship = new Ship(columns)
+  exhaust = new Exhaust(ship.getExhaustSource.bind(ship))
 
   onMessage = (d) ->
     if d.sliderEvent
@@ -255,6 +289,7 @@ $ ->
   view.onFrame = (ev) ->
     ship.step(ev.delta)
     columns.step(ev.delta)
+    exhaust.step(ev.delta)
 
   tool = new paper.Tool()
   tool.onMouseDrag = (ev) ->
