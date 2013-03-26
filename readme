@@ -1,0 +1,30 @@
+Game goals
+==========
+
+Make about a minute of fun for someone visiting the booth
+
+Take advantage of the sliders and maybe the other controls, including output
+
+Stay space-related, to fit the theme of one event
+
+
+To run
+======
+
+virtualenv .
+bin/pip install -r pydeps
+
+bin/python sliderserver.py
+
+coffee --watch --compile *.coffee
+
+browse to index.html
+
+Other images
+============
+
+http://www.flickr.com/photos/grendelkhan/203698955/
+http://www.flickr.com/photos/bionicteaching/2057997411/
+http://www.flickr.com/photos/19779889@N00/4727585141/
+http://photo.bigasterisk.com/digicam/dl-2012-07-19/DSC_9269.JPG?size=full
+
