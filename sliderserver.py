@@ -37,10 +37,8 @@ class Live(cyclone.websocket.WebSocketHandler):
 
     def messageReceived(self, message):
         log.info("got message %s" % message)
-
-        # self.valueOut('slider5', value)
-        
-        self.sendMessage(message)
+        message = json.loads(message)
+        self.settings.hw.valueOut(message['name'], message['value'])
 
 class Index(cyclone.web.RequestHandler):
     def get(self):

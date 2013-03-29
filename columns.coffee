@@ -10,16 +10,17 @@ class Column
   # |
   # |
   #
-  constructor: (config, i, x1, w, gap) ->
+  constructor: (config, num, x1, w, gap) ->
     # i is 1-based index
-    [@config, @x1, @w] = [config, x1, w]
+    [@config, @num, @x1, @w] = [config, num, x1, w]
     @item = new paper.Group()
     # item's origin is at the * in the diagram
 
     @y = 200 + Math.random() * 200
     @gapHeight = gap
 
-    @sliderOffset = Math.random() * .4 - .2
+    @sliderOffset = Math.random() * 1.6 - .8
+    @correctCenter = @config.height / 2 - @gapHeight / 2
 
     @rockAreas = [
       new paper.Rectangle(new paper.Point([0,0]), new paper.Size(@w, -1000)),
@@ -32,7 +33,7 @@ class Column
     @item.addChild(@top)
     @item.addChild(@bottom)
 
-    @addRockImages(i)
+    @addRockImages(num)
 
     @item.translate(@x1, @y)
 
@@ -60,13 +61,16 @@ class Column
 
   setFromSlider: (sliderValueNorm) ->
     # incoming is 0.0 for top, 1.0 for bottom
-    correctCenter = paper.view.size.height / 2 - @gapHeight / 2
     trueOffset = (sliderValueNorm - .5) * 2 # -1 to 1
     bumpedOffset = trueOffset + @sliderOffset
-    @y = correctCenter + 300 * bumpedOffset
+    @y = @correctCenter + @config.height/2 * bumpedOffset
+
+  getNormSlider: ->
+    # returns 0 if the slider should be at the top ... 1 for bottom
+    return ((@y - @correctCenter) / (@config.height/2) - @sliderOffset) / 2 + .5
 
   step: (dt) ->
-    @y = clamp(@y, @config.minVisibleRock, @config.height - @config.minVisibleRock - @gapHeight)
+    @y = clamp(@y, -@gapHeight, @config.height)
     @item.matrix.translateY = @y
 
 
@@ -92,8 +96,17 @@ class window.Columns
     @introColumn =
       getGap: -> new paper.Rectangle([0, 0], [config.introColumn, config.height])
 
-
     @item.addChild(c.item) for c in @cols
+
+  scramble: ->
+    prev = 0
+    for col in @cols
+      yy = prev
+      while Math.abs(yy - prev) < .1
+        yy = Math.random()
+
+      col.setFromSlider(yy)
+      prev = yy
 
   nextColumns: (x) ->
     # [null, null] if we're in or beyond the last column. Otherwise

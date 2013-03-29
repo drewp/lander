@@ -7,9 +7,9 @@ class window.Ship
     @img = new paper.Raster('img/ship1.png')
     @img.scale(@config.ship.imgScale)
     @item.addChild(@img)
-    @item.translate(new paper.Point(0, paper.view.size.height / 2))
+    @resetPosition()
 
-    @heading = new paper.Point(90, 0)
+    @heading = new paper.Point(.1, 0)
     @accel = new paper.Point(0, 0)
 
     @flyToward = new paper.Point(0, 0)
@@ -27,6 +27,14 @@ class window.Ship
 
       @currentPreview = new paper.Path.Line([0,0], [0,0])
       @currentPreview.style = {strokeColor: 'blue'}
+
+  resetPosition: ->
+    @item.setMatrix(new paper.Matrix().translate(0, @config.height / 2))
+    @flightStartMs = +new Date();
+
+  flightElapsedMs: -> +new Date() - @flightStartMs
+
+  finished: -> @item.matrix.translateX > @config.width
 
   getExhaustSource: ->
     {pt: @item.matrix.translation, dir: @heading.rotate(180)}
@@ -108,8 +116,5 @@ class window.Ship
     @updateHeading(dt)
 
     @item.translate(@heading.multiply(dt))
-    if @item.matrix.translateX > @config.width
-      @item.position = [0, @config.height / 2]
       
-
   position: -> @item.matrix.translation
