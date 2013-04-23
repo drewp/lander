@@ -117,6 +117,15 @@ class window.Columns
         return [cur, @cols[i]]
     return [null, null]
 
+  prevColumns: (x) ->
+    # [first, null] if we're in or before the first column. Otherwise
+    # [prev,this] Column objects.
+    for i in [1 ... @cols.length]
+      index = (@cols.length - 1) - i
+      if @cols[index].x1 + @cols[index].w < x #- @config.columnLookAhead
+        return [@cols[index], @cols[index + 1]]
+    return [@cols[0], null]
+
   withinColumn: (x) ->
     for col in @cols
       if col.x1 <= x < col.x1 + col.w
