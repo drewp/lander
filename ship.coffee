@@ -12,6 +12,7 @@ class window.Ship
     @heading = new paper.Point(.1, 0)
     @accel = new paper.Point(0, 0)
     @forward = true
+    @flipping = -1
 
     @flyToward = new paper.Point(0, 0)
   
@@ -38,11 +39,11 @@ class window.Ship
   finished: -> @item.matrix.translateX > @config.width
 
   getExhaustSource: ->
-    if @forward
+    if @item.matrix.scaleX > 0
       return {pt: @item.matrix.translation, dir: @heading.rotate(180)}
     else
       return {pt: @item.matrix.translation, dir: @heading}
-  
+
   updateFlyToward: ->
 #        |              ||               |
 #        |              ||               |
@@ -63,9 +64,9 @@ class window.Ship
       else
         gap1 = c2.getGap()
         @flyToward = gap1.center
-        if pos.subtract(gap1.center).length < 20
+        if pos.subtract(gap1.center).length < 20 && @heading.length < 5
           @forward = true
-          @item.matrix.scaleX = 1
+          @flipping = 8
     else
       [gap1, gap2] = [c1.getGap(), c2.getGap()]
 
@@ -75,11 +76,11 @@ class window.Ship
       botInt = paper.Point.min(gap1.bottomRight, gap2.bottomLeft)
 
       if topInt.y >= botInt.y - @config.ship.collisionRadius * 2
-        # stuck; just hover
+        # stuck; turn around
         @flyToward = gap1.center
-        if pos.subtract(gap1.center).length < 20
+        if pos.subtract(gap1.center).length < 20 && @heading.length < 5
           @forward = !@forward
-          @item.matrix.scaleX *= -1
+          @flipping = 8
       else
         @flyToward = topInt.add(botInt).divide(2)
 
@@ -97,7 +98,7 @@ class window.Ship
     path.lastSegment.point = pt.add(new paper.Point([100, 0]).rotate(angle))
 
   setImageAngle: (angle) ->
-    if @forward
+    if @item.matrix.scaleX > 0
       @img.rotate(angle - @img.matrix.rotation)
     else
       @img.rotate(-angle - @img.matrix.rotation)
@@ -117,7 +118,7 @@ class window.Ship
     $("#ship").text("angle "+Math.round(currentAngle)+
                     " ideal "+Math.round(idealAngle))
 
-    clampedIdealAngle = clamp(idealAngle, -steer.maxAbsAngle, steer.maxAbsAngle)
+    clampedIdealAngle = idealAngle #clamp(idealAngle, -steer.maxAbsAngle, steer.maxAbsAngle)
 
     requiredTurn = clampedIdealAngle - currentAngle
     if Math.abs(requiredTurn) > steer.slowDownAngle
@@ -140,9 +141,23 @@ class window.Ship
     @updateFlyToward()
     @updateHeading(dt)
 
-    if @forward
-      @item.translate(@heading.multiply(dt))
+    if @flipping > 0
+      --@flipping
+    else if @flipping == 0
+      if @forward
+        @item.matrix.scaleX += dt * 3
+        if @item.matrix.scaleX >= 1
+          @flipping = -1
+          @item.matrix.scaleX = 1
+      else
+        @item.matrix.scaleX -= dt * 3
+        if @item.matrix.scaleX <= -1
+          @flipping = -1
+          @item.matrix.scaleX = -1
     else
-      @item.translate(@heading.multiply(-dt))
+      if @forward
+        @item.translate(@heading.multiply(dt))
+      else
+        @item.translate(@heading.multiply(-dt))
       
   position: -> @item.matrix.translation
