@@ -94,7 +94,7 @@ class window.Columns
       new Column(config, 8, config.introColumn + 7 * w, w, tween(gh1, gh2, 1.0))
       ]
     @introColumn =
-      getGap: -> new paper.Rectangle([0, 0], [config.introColumn, config.height])
+      getGap: -> new paper.Rectangle([0, 0], [config.introColumn, 0]) # height = config.height
 
     @item.addChild(c.item) for c in @cols
 
@@ -108,23 +108,11 @@ class window.Columns
       col.setFromSlider(yy)
       prev = yy
 
-  nextColumns: (x) ->
-    # [null, null] if we're in or beyond the last column. Otherwise
-    # [this,next] Column objects.
+  getColumnNum: (x) ->
     for i in [0 ... @cols.length]
-      if @cols[i].x1 > x + @config.columnLookAhead
-        cur = if i == 0 then @introColumn else @cols[i - 1]
-        return [cur, @cols[i]]
-    return [null, null]
-
-  prevColumns: (x) ->
-    # [first, null] if we're in or before the first column. Otherwise
-    # [prev,this] Column objects.
-    for i in [1 ... @cols.length]
-      index = (@cols.length - 1) - i
-      if @cols[index].x1 + @cols[index].w < x #- @config.columnLookAhead
-        return [@cols[index], @cols[index + 1]]
-    return [@cols[0], null]
+      if @cols[i].x1 <= x < @cols[i].x1 + @cols[i].w
+        return i + 1
+    return -1
 
   withinColumn: (x) ->
     for col in @cols

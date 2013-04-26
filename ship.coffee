@@ -9,12 +9,11 @@ class window.Ship
     @item.addChild(@img)
     @resetPosition()
 
-    @heading = new paper.Point(.1, 0)
-    @accel = new paper.Point(0, 0)
+    @heading = new paper.Point(@config.ship.steer.maxSpeed, 0)
+    @flyToward = new paper.Point(40, @config.height / 2)
+    @path = [ ]
+    @pathIndex = 0
     @forward = true
-    @flipping = -1
-
-    @flyToward = new paper.Point(0, 0)
   
     if @config.showPreviews
       @collisionCircle = new paper.Path.Circle([0,0], @config.ship.collisionRadius)
@@ -32,6 +31,8 @@ class window.Ship
 
   resetPosition: ->
     @item.setMatrix(new paper.Matrix().translate(0, @config.height / 2))
+    #@gapTarget.x = 40
+    #@gapTarget.y = 0
     @flightStartMs = +new Date();
 
   flightElapsedMs: -> +new Date() - @flightStartMs
@@ -39,10 +40,38 @@ class window.Ship
   finished: -> @item.matrix.translateX > @config.width
 
   getExhaustSource: ->
-    if @item.matrix.scaleX > 0
-      return {pt: @item.matrix.translation, dir: @heading.rotate(180)}
-    else
-      return {pt: @item.matrix.translation, dir: @heading}
+    return {pt: @item.matrix.translation, dir: @heading.rotate(180)}
+
+  rebuildPath: (colNum) ->
+    @path = [ ]
+    while true
+      col = @columns.byNum(colNum)
+      if @forward
+        colGap = col.getGap()
+        @path[@path.length] = colGap.bottomLeft
+        @path[@path.length] = colGap.bottomRight
+        if colNum == 8
+          break
+        next = @columns.byNum(colNum + 1)
+        nextGap = next.getGap()
+        topInt = paper.Point.max(colGap.topRight, nextGap.topLeft)
+        botInt = paper.Point.min(colGap.bottomRight, nextGap.bottomLeft)
+        if topInt.y >= botInt.y - @config.ship.collisionRadius * 2
+          break
+        ++colNum
+      else
+        colGap = col.getGap()
+        @path[@path.length] = colGap.topRight
+        @path[@path.length] = colGap.topLeft
+        if colNum == 1
+          break
+        next = @columns.byNum(colNum - 1)
+        nextGap = next.getGap()
+        topInt = paper.Point.max(colGap.topLeft, nextGap.topRight)
+        botInt = paper.Point.min(colGap.bottomLeft, nextGap.bottomRight)
+        if topInt.y >= botInt.y - @config.ship.collisionRadius * 2
+          break
+        --colNum
 
   updateFlyToward: ->
 #        |              ||               |
@@ -55,34 +84,39 @@ class window.Ship
 #                        |               |
 
     pos = @item.matrix.translation
-    [c1, c2] = @columns.nextColumns(pos.x)
-    if !@forward
-      [c2, c1] = @columns.prevColumns(pos.x)
-    if c1 == null
-      if @forward
-        @flyToward = pos.add([20, 0])
-      else
-        gap1 = c2.getGap()
-        @flyToward = gap1.center
-        if pos.subtract(gap1.center).length < 20 && @heading.length < 5
-          @forward = true
-          @flipping = 8
+    #dist = @config.ship.wallDistance
+
+    colNum = @columns.getColumnNum(pos.x)
+    if colNum == -1
+      @rebuildPath(1)
+      @pathIndex = 0
+      @flyToward = @path[@pathIndex]
+      return
+    if colNum == 8
+      col = @columns.byNum(8)
+      @flyToward.x = col.x1 + col.w + 20
+      @flyToward.y = col.y + (col.gapHeight / 2)
+      return
+
+    @rebuildPath(colNum)
+    if @pathIndex == 2 && @path.length > 2
+      @pathIndex = 2
     else
-      [gap1, gap2] = [c1.getGap(), c2.getGap()]
+      @pathIndex = @pathIndex % 2
+    @flyToward = @path[@pathIndex]
 
-      @updateGapPreviews(gap1, gap2) if @config.showPreviews
+    if (pos.subtract(@flyToward).length > 15)
+      return
 
-      topInt = paper.Point.max(gap1.topRight, gap2.topLeft)
-      botInt = paper.Point.min(gap1.bottomRight, gap2.bottomLeft)
+    if @pathIndex == @path.length - 1
+      @forward = !@forward
+      @rebuildPath(colNum)
+      @pathIndex = 0
+    else
+      ++@pathIndex
+    @flyToward = @path[@pathIndex]
 
-      if topInt.y >= botInt.y - @config.ship.collisionRadius * 2
-        # stuck; turn around
-        @flyToward = gap1.center
-        if pos.subtract(gap1.center).length < 20 && @heading.length < 5
-          @forward = !@forward
-          @flipping = 8
-      else
-        @flyToward = topInt.add(botInt).divide(2)
+    #@updateGapPreviews(gap1, gap2) if @config.showPreviews
 
     @flyTowardPreview.position = @flyToward if @flyTowardPreview?
 
@@ -98,66 +132,34 @@ class window.Ship
     path.lastSegment.point = pt.add(new paper.Point([100, 0]).rotate(angle))
 
   setImageAngle: (angle) ->
-    if @item.matrix.scaleX > 0
-      @img.rotate(angle - @img.matrix.rotation)
-    else
-      @img.rotate(-angle - @img.matrix.rotation)
+    @img.rotate(angle - @img.matrix.rotation)
 
   updateHeading: (dt) ->
     pos = @item.matrix.translation
+    currentAngle = @heading.angle
     steer = @config.ship.steer
 
     idealAngle = @flyToward.subtract(pos).angle
-    currentAngle = @heading.angle
-    if !@forward
-      idealAngle -= 180
-      idealAngle += 360 if idealAngle < -180
-      #currentAngle -= 180
-      #currentAngle += 360 if currentAngle < -180
-
+    
     $("#ship").text("angle "+Math.round(currentAngle)+
                     " ideal "+Math.round(idealAngle))
 
-    clampedIdealAngle = idealAngle #clamp(idealAngle, -steer.maxAbsAngle, steer.maxAbsAngle)
-
-    requiredTurn = clampedIdealAngle - currentAngle
-    if Math.abs(requiredTurn) > steer.slowDownAngle
-      if @heading.length > steer.minSpeed
-        @heading = @heading.multiply(Math.pow(steer.brakes, dt))
-    else
-      if @heading.length < steer.maxSpeed
-        @heading = @heading.multiply(Math.pow(steer.accel, dt))
+    requiredTurn = idealAngle - currentAngle
   
-    frameTurn = clamp(requiredTurn,
-                      -steer.maxDegPerSec * dt,
-                      steer.maxDegPerSec * dt)
+    #frameTurn = clamp(requiredTurn,
+    #                  -@config.ship.maxSteerPerSec * dt,
+    #                  @config.ship.maxSteerPerSec * dt)
+    frameTurn = requiredTurn
     @heading = @heading.rotate(frameTurn, [0, 0])
     @setImageAngle(@heading.angle)
 
-    @updatePreviewLine(@idealPreview, pos, clampedIdealAngle) if @idealPreview?
+    @updatePreviewLine(@idealPreview, pos, idealAngle) if @idealPreview?
     @updatePreviewLine(@currentPreview, pos, @img.matrix.rotation) if @currentPreview?
   
   step: (dt) ->
     @updateFlyToward()
     @updateHeading(dt)
 
-    if @flipping > 0
-      --@flipping
-    else if @flipping == 0
-      if @forward
-        @item.matrix.scaleX += dt * 3
-        if @item.matrix.scaleX >= 1
-          @flipping = -1
-          @item.matrix.scaleX = 1
-      else
-        @item.matrix.scaleX -= dt * 3
-        if @item.matrix.scaleX <= -1
-          @flipping = -1
-          @item.matrix.scaleX = -1
-    else
-      if @forward
-        @item.translate(@heading.multiply(dt))
-      else
-        @item.translate(@heading.multiply(-dt))
+    @item.translate(@heading.multiply(dt))
       
   position: -> @item.matrix.translation
