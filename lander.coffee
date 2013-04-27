@@ -18,14 +18,8 @@ config =
   ship:
     collisionRadius: 15
     imgScale: .3
-    steer:
-      maxDegPerSec: 50
-      maxAbsAngle: 80 
-      slowDownAngle: 50 # beyond this, hit the brakes
-      minSpeed: .1 # px/sec
-      maxSpeed: 150
-      brakes: .000007 # rate change per sec
-      accel: 70
+    speed: 120
+    maxTurnPerSec: 360
 
 config.columnWidth = (config.width - config.introColumn) / config.columnCount
 

@@ -9,7 +9,7 @@ class window.Ship
     @item.addChild(@img)
     @resetPosition()
 
-    @heading = new paper.Point(@config.ship.steer.maxSpeed, 0)
+    @heading = new paper.Point(@config.ship.speed, 0)
     @flyToward = new paper.Point(40, @config.height / 2)
     @path = [ ]
     @pathIndex = 0
@@ -31,8 +31,7 @@ class window.Ship
 
   resetPosition: ->
     @item.setMatrix(new paper.Matrix().translate(0, @config.height / 2))
-    #@gapTarget.x = 40
-    #@gapTarget.y = 0
+    @path = [ ]
     @flightStartMs = +new Date();
 
   flightElapsedMs: -> +new Date() - @flightStartMs
@@ -42,36 +41,46 @@ class window.Ship
   getExhaustSource: ->
     return {pt: @item.matrix.translation, dir: @heading.rotate(180)}
 
+  getOffsetPoint: (p, moveForward) ->
+    dist = 24
+    point = new paper.Point(p)
+    if @forward
+      point.y -= dist
+      if moveForward == 1
+        point.x += dist
+      else if moveForward == -1
+        point.x -= dist
+    else
+      point.y += dist
+      if moveForward == 1
+        point.x -= dist
+      else if moveForward == -1
+        point.x += dist
+    return point
+
   rebuildPath: (colNum) ->
     @path = [ ]
-    while true
-      col = @columns.byNum(colNum)
-      if @forward
-        colGap = col.getGap()
-        @path[@path.length] = colGap.bottomLeft
-        @path[@path.length] = colGap.bottomRight
-        if colNum == 8
-          break
-        next = @columns.byNum(colNum + 1)
-        nextGap = next.getGap()
-        topInt = paper.Point.max(colGap.topRight, nextGap.topLeft)
-        botInt = paper.Point.min(colGap.bottomRight, nextGap.bottomLeft)
-        if topInt.y >= botInt.y - @config.ship.collisionRadius * 2
-          break
-        ++colNum
-      else
-        colGap = col.getGap()
-        @path[@path.length] = colGap.topRight
-        @path[@path.length] = colGap.topLeft
-        if colNum == 1
-          break
-        next = @columns.byNum(colNum - 1)
-        nextGap = next.getGap()
-        topInt = paper.Point.max(colGap.topLeft, nextGap.topRight)
-        botInt = paper.Point.min(colGap.bottomLeft, nextGap.bottomRight)
-        if topInt.y >= botInt.y - @config.ship.collisionRadius * 2
-          break
-        --colNum
+    colGap = @columns.byNum(colNum).getGap()
+    if @forward
+      if colNum > 1
+        prevGap = @columns.byNum(colNum - 1).getGap()
+        if prevGap.bottomRight.y < colGap.bottomLeft.y && prevGap.bottomRight.y > colGap.topLeft.y + @config.ship.collisionRadius * 2
+          @path[@path.length] = @getOffsetPoint(prevGap.bottomRight, 1)
+      @path[@path.length] = @getOffsetPoint(colGap.bottomLeft.add(colGap.bottomRight).divide(2), 0)
+      if colNum < 8
+        nextGap = @columns.byNum(colNum + 1).getGap()
+        if nextGap.bottomLeft.y < colGap.bottomRight.y && nextGap.bottomLeft.y > colGap.topRight.y + @config.ship.collisionRadius * 2
+          @path[@path.length] = @getOffsetPoint(nextGap.bottomLeft, -1)
+    else
+      if colNum < 8
+        prevGap = @columns.byNum(colNum + 1).getGap()
+        if prevGap.topLeft.y > colGap.topRight.y && prevGap.topLeft.y < colGap.bottomRight.y - @config.ship.collisionRadius * 2
+          @path[@path.length] = @getOffsetPoint(prevGap.topLeft, 1)
+      @path[@path.length] = @getOffsetPoint(colGap.topRight.add(colGap.topLeft).divide(2), 0)
+      if colNum > 1
+        nextGap = @columns.byNum(colNum - 1).getGap()
+        if nextGap.topRight.y > colGap.topLeft.y && nextGap.topRight.y < colGap.bottomLeft.y - @config.ship.collisionRadius * 2
+          @path[@path.length] = @getOffsetPoint(nextGap.topRight, -1)
 
   updateFlyToward: ->
 #        |              ||               |
@@ -84,13 +93,11 @@ class window.Ship
 #                        |               |
 
     pos = @item.matrix.translation
-    #dist = @config.ship.wallDistance
-
-    colNum = @columns.getColumnNum(pos.x)
+    colNum = if @path.length > 0 then @columns.getColumnNum(@path[0].x) else -1
     if colNum == -1
       @rebuildPath(1)
       @pathIndex = 0
-      @flyToward = @path[@pathIndex]
+      @flyToward = @path[0]
       return
     if colNum == 8
       col = @columns.byNum(8)
@@ -99,22 +106,33 @@ class window.Ship
       return
 
     @rebuildPath(colNum)
-    if @pathIndex == 2 && @path.length > 2
-      @pathIndex = 2
-    else
-      @pathIndex = @pathIndex % 2
+    @pathIndex = if @pathIndex >= @path.length then @path.length - 1 else @pathIndex
     @flyToward = @path[@pathIndex]
-
     if (pos.subtract(@flyToward).length > 15)
       return
 
     if @pathIndex == @path.length - 1
-      @forward = !@forward
+      colGap = null
+      nextGap = null
+      if @forward && colNum < 8
+        colGap = @columns.byNum(colNum).getGap()
+        nextGap = @columns.byNum(colNum + 1).getGap()
+      else if !@forward && colNum > 1
+        colGap = @columns.byNum(colNum - 1).getGap()
+        nextGap = @columns.byNum(colNum).getGap()
+      if colGap != null
+        topInt = paper.Point.max(colGap.topRight, nextGap.topLeft)
+        botInt = paper.Point.min(colGap.bottomRight, nextGap.bottomLeft)
+        if topInt.y >= botInt.y - @config.ship.collisionRadius * 2
+          @forward = !@forward
+        else
+          colNum = if @forward then colNum + 1 else colNum - 1
+      else
+        @forward = !@forward
       @rebuildPath(colNum)
       @pathIndex = 0
     else
       ++@pathIndex
-    @flyToward = @path[@pathIndex]
 
     #@updateGapPreviews(gap1, gap2) if @config.showPreviews
 
@@ -145,11 +163,15 @@ class window.Ship
                     " ideal "+Math.round(idealAngle))
 
     requiredTurn = idealAngle - currentAngle
+    if Math.abs(requiredTurn + 360) < Math.abs(requiredTurn)
+      requiredTurn += 360
+    else if Math.abs(requiredTurn - 360) < Math.abs(requiredTurn)
+      requiredTurn -= 360
   
-    #frameTurn = clamp(requiredTurn,
-    #                  -@config.ship.maxSteerPerSec * dt,
-    #                  @config.ship.maxSteerPerSec * dt)
-    frameTurn = requiredTurn
+    frameTurn = clamp(requiredTurn,
+                      -@config.ship.maxTurnPerSec * dt,
+                      @config.ship.maxTurnPerSec * dt)
+    #frameTurn = requiredTurn
     @heading = @heading.rotate(frameTurn, [0, 0])
     @setImageAngle(@heading.angle)
 
@@ -161,5 +183,13 @@ class window.Ship
     @updateHeading(dt)
 
     @item.translate(@heading.multiply(dt))
+    pos = @item.matrix.translation
+    colNum = @columns.getColumnNum(pos.x)
+    if colNum > 0
+      colGap = @columns.byNum(colNum).getGap()
+      if pos.y < colGap.topRight.y
+        @item.translate(new paper.Point(0, colGap.topRight.y - pos.y))
+      else if pos.y > colGap.bottomRight.y
+        @item.translate(new paper.Point(0, colGap.bottomRight.y - pos.y))
       
   position: -> @item.matrix.translation
