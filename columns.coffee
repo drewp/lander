@@ -17,6 +17,7 @@ class Column
     # item's origin is at the * in the diagram
 
     @y = 200 + Math.random() * 200
+    @moved = false
     @gapHeight = gap
 
     @sliderOffset = Math.random() * 1.6 - .8
@@ -58,12 +59,15 @@ class Column
 
   offsetY: (dy) ->
     @y += dy
+    @moved = true
 
   setFromSlider: (sliderValueNorm) ->
     # incoming is 0.0 for top, 1.0 for bottom
     trueOffset = (sliderValueNorm - .5) * 2 # -1 to 1
     bumpedOffset = trueOffset + @sliderOffset
+    oldy = @y
     @y = @correctCenter + @config.height/2 * bumpedOffset
+    @moved = @moved || Math.abs(oldy - @y) > 4
 
   getNormSlider: ->
     # returns 0 if the slider should be at the top ... 1 for bottom
@@ -98,6 +102,12 @@ class window.Columns
 
     @item.addChild(c.item) for c in @cols
 
+  checkMovement: ->
+    for i in [0 ... @cols.length]
+      if @cols[i].moved
+        return true
+    return false
+
   scramble: ->
     prev = 0
     for col in @cols
@@ -106,6 +116,7 @@ class window.Columns
         yy = Math.random()
 
       col.setFromSlider(yy)
+      col.moved = false
       prev = yy
 
   getColumnNum: (x) ->

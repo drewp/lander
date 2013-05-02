@@ -30,7 +30,7 @@ class window.Ship
       @currentPreview.style = {strokeColor: 'blue'}
 
   resetPosition: ->
-    @item.setMatrix(new paper.Matrix().translate(0, @config.height / 2))
+    @item.setMatrix(new paper.Matrix().translate(-20, @config.height / 2))
     @path = [ ]
     @flightStartMs = +new Date();
 
@@ -41,6 +41,9 @@ class window.Ship
   getExhaustSource: ->
     return {pt: @item.matrix.translation, dir: @heading.rotate(180)}
 
+  # Used by rebuildPath. Moves a point away from the column. The direction that
+  # the point is moved depends on which direction the path is going.
+  # TODO: Load dist from config?
   getOffsetPoint: (p, moveForward) ->
     dist = 24
     point = new paper.Point(p)
@@ -58,46 +61,53 @@ class window.Ship
         point.x += dist
     return point
 
+  # Builds a path for the ship to get from the current column (colNum) to the
+  # next column. The path has a maximum of 3 points. 
   rebuildPath: (colNum) ->
     @path = [ ]
     colGap = @columns.byNum(colNum).getGap()
     if @forward
       if colNum > 1
         prevGap = @columns.byNum(colNum - 1).getGap()
-        if prevGap.bottomRight.y < colGap.bottomLeft.y && prevGap.bottomRight.y > colGap.topLeft.y + @config.ship.collisionRadius * 2
+        if colGap.bottomLeft.y > prevGap.bottomRight.y > colGap.topLeft.y + @config.ship.collisionRadius * 2
           @path[@path.length] = @getOffsetPoint(prevGap.bottomRight, 1)
       @path[@path.length] = @getOffsetPoint(colGap.bottomLeft.add(colGap.bottomRight).divide(2), 0)
       if colNum < 8
         nextGap = @columns.byNum(colNum + 1).getGap()
-        if nextGap.bottomLeft.y < colGap.bottomRight.y && nextGap.bottomLeft.y > colGap.topRight.y + @config.ship.collisionRadius * 2
+        if colGap.bottomRight.y > nextGap.bottomLeft.y > colGap.topRight.y + @config.ship.collisionRadius * 2
           @path[@path.length] = @getOffsetPoint(nextGap.bottomLeft, -1)
     else
       if colNum < 8
         prevGap = @columns.byNum(colNum + 1).getGap()
-        if prevGap.topLeft.y > colGap.topRight.y && prevGap.topLeft.y < colGap.bottomRight.y - @config.ship.collisionRadius * 2
+        if colGap.topRight.y < prevGap.topLeft.y < colGap.bottomRight.y - @config.ship.collisionRadius * 2
           @path[@path.length] = @getOffsetPoint(prevGap.topLeft, 1)
       @path[@path.length] = @getOffsetPoint(colGap.topRight.add(colGap.topLeft).divide(2), 0)
       if colNum > 1
         nextGap = @columns.byNum(colNum - 1).getGap()
-        if nextGap.topRight.y > colGap.topLeft.y && nextGap.topRight.y < colGap.bottomLeft.y - @config.ship.collisionRadius * 2
+        if colGap.topLeft.y < nextGap.topRight.y < colGap.bottomLeft.y - @config.ship.collisionRadius * 2
           @path[@path.length] = @getOffsetPoint(nextGap.topRight, -1)
 
+  # Determines the point the ship should be flying towards. The ship will fly
+  # along the path until it reaches the end. At the end, if the ship can get
+  # to the next column, then a new path is generated for that column.
+  # Otherwise, the ship reverses direction.
   updateFlyToward: ->
-#        |              ||               |
-#        |              ||               |
-#        +--------------+|               |
-#                        +---------------+
-#             gap1            gap2
-#        +--------------+
-#        |              |+---------------+
-#                        |               |
-
+    @flyTowardPreview.position = @flyToward if @flyTowardPreview?
     pos = @item.matrix.translation
     colNum = if @path.length > 0 then @columns.getColumnNum(@path[0].x) else -1
     if colNum == -1
-      @rebuildPath(1)
-      @pathIndex = 0
-      @flyToward = @path[0]
+      col = @columns.byNum(1)
+      colGap = col.getGap()
+      if colGap.topLeft.y < 0 || colGap.bottomLeft.y > @config.height
+        @flyToward.x = @config.introColumn / 2
+        @flyToward.y = @config.height / 2
+      else if (pos.subtract(@flyToward).length > 15)
+        @flyToward.x = col.x1
+        @flyToward.y = col.y + (col.gapHeight / 2)
+      else
+        @rebuildPath(1)
+        @pathIndex = 0
+        @flyToward = @path[0]
       return
     if colNum == 8
       col = @columns.byNum(8)
@@ -114,16 +124,19 @@ class window.Ship
     if @pathIndex == @path.length - 1
       colGap = null
       nextGap = null
-      if @forward && colNum < 8
+      isOOB = false
+      if @forward
         colGap = @columns.byNum(colNum).getGap()
         nextGap = @columns.byNum(colNum + 1).getGap()
+        isOOB = nextGap.topLeft.y < 0 || nextGap.bottomLeft.y > @config.height
       else if !@forward && colNum > 1
         colGap = @columns.byNum(colNum - 1).getGap()
         nextGap = @columns.byNum(colNum).getGap()
+        isOOB = colGap.topLeft.y < 0 || colGap.bottomLeft.y > @config.height
       if colGap != null
         topInt = paper.Point.max(colGap.topRight, nextGap.topLeft)
         botInt = paper.Point.min(colGap.bottomRight, nextGap.bottomLeft)
-        if topInt.y >= botInt.y - @config.ship.collisionRadius * 2
+        if topInt.y >= botInt.y - @config.ship.collisionRadius * 2 || isOOB
           @forward = !@forward
         else
           colNum = if @forward then colNum + 1 else colNum - 1
@@ -133,17 +146,6 @@ class window.Ship
       @pathIndex = 0
     else
       ++@pathIndex
-
-    #@updateGapPreviews(gap1, gap2) if @config.showPreviews
-
-    @flyTowardPreview.position = @flyToward if @flyTowardPreview?
-
-  updateGapPreviews: (gap1, gap2) ->
-    @gap1Preview.remove() if @gap1Preview?
-    @gap2Preview.remove() if @gap2Preview?
-    R = paper.Path.Rectangle
-    (@gap1Preview = new R(gap1.expand(-2))).style = {strokeColor: '#ff0000'}
-    (@gap2Preview = new R(gap2)).style = {strokeColor: '#ffff00'}
   
   updatePreviewLine: (path, pt, angle) ->
     path.firstSegment.point = pt
@@ -152,6 +154,7 @@ class window.Ship
   setImageAngle: (angle) ->
     @img.rotate(angle - @img.matrix.rotation)
 
+  # Rotate the ship smoothly
   updateHeading: (dt) ->
     pos = @item.matrix.translation
     currentAngle = @heading.angle
@@ -171,7 +174,6 @@ class window.Ship
     frameTurn = clamp(requiredTurn,
                       -@config.ship.maxTurnPerSec * dt,
                       @config.ship.maxTurnPerSec * dt)
-    #frameTurn = requiredTurn
     @heading = @heading.rotate(frameTurn, [0, 0])
     @setImageAngle(@heading.angle)
 
@@ -183,13 +185,16 @@ class window.Ship
     @updateHeading(dt)
 
     @item.translate(@heading.multiply(dt))
+
+    # Resolve ship collision
     pos = @item.matrix.translation
     colNum = @columns.getColumnNum(pos.x)
     if colNum > 0
       colGap = @columns.byNum(colNum).getGap()
-      if pos.y < colGap.topRight.y
-        @item.translate(new paper.Point(0, colGap.topRight.y - pos.y))
-      else if pos.y > colGap.bottomRight.y
-        @item.translate(new paper.Point(0, colGap.bottomRight.y - pos.y))
+      collisionRadius = @config.ship.collisionRadius
+      if pos.y - collisionRadius < colGap.topRight.y
+        @item.translate(new paper.Point(0, colGap.topRight.y - (pos.y - collisionRadius)))
+      else if pos.y + collisionRadius > colGap.bottomRight.y
+        @item.translate(new paper.Point(0, colGap.bottomRight.y - (pos.y + collisionRadius)))
       
   position: -> @item.matrix.translation

@@ -7,6 +7,7 @@ config =
   startingGap: 160
   width: 1100
   height: 600
+  menuAnimationTime: 1
   exhaust:
     opacity: .2
     bornPerSec: 20
@@ -45,6 +46,8 @@ $ ->
   ship = new Ship(config, columns)
   exhaust = new Exhaust(config, ship.getExhaustSource.bind(ship))
 
+  menu = new Menu(config, "main")
+  
   setSlidersToColumns = ->
     for col in columns.cols
       msg = {name: "slider"+col.num, value: Math.floor((1 - col.getNormSlider()) * 127)}
@@ -54,14 +57,23 @@ $ ->
   setSlidersToColumns()
 
   view.onFrame = (ev) ->
-    ship.step(ev.delta)
     columns.step(ev.delta)
     exhaust.step(ev.delta)
 
-    if ship.finished()
-      columns.scramble()
-      setSlidersToColumns()
-      ship.resetPosition()
+    if menu != null
+      menu.step(ev.delta)
+      if !menu.isExiting && columns.checkMovement()
+        menu.startExit()
+      else if menu.doneExiting()
+        menu = null
+    else
+      ship.step(ev.delta)
+      if ship.finished()
+        columns.scramble()
+        setSlidersToColumns()
+        ship.resetPosition()
+        menu = new Menu(config, "victory")
+
     sec = ship.flightElapsedMs() / 1000
     $("#flight").text(sec+" seconds elapsed")
 
