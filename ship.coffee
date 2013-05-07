@@ -29,6 +29,8 @@ class window.Ship
       @currentPreview = new paper.Path.Line([0,0], [0,0])
       @currentPreview.style = {strokeColor: 'blue'}
 
+      @radar = new Radar()
+
   resetPosition: ->
     @item.setMatrix(new paper.Matrix().translate(-20, @config.height / 2))
     @path = [ ]
@@ -196,5 +198,8 @@ class window.Ship
         @item.translate(new paper.Point(0, colGap.topRight.y - (pos.y - collisionRadius)))
       else if pos.y + collisionRadius > colGap.bottomRight.y
         @item.translate(new paper.Point(0, colGap.bottomRight.y - (pos.y + collisionRadius)))
+
+    @radar.draw(@radar.computePolygon(pos, @heading.angle, 30,
+                @columns.allWalls()))
       
   position: -> @item.matrix.translation

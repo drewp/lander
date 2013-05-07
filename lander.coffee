@@ -1,5 +1,6 @@
 config =
-  showPreviews: false
+  showPreviews: true
+  autoStart: true
   introColumn: 140
   columnCount: 8
   columnWidth: null # computed
@@ -46,7 +47,7 @@ $ ->
   ship = new Ship(config, columns)
   exhaust = new Exhaust(config, ship.getExhaustSource.bind(ship))
 
-  menu = new Menu(config, "main")
+  menu = if config.autoStart then null else new Menu(config, "main")
   
   setSlidersToColumns = ->
     for col in columns.cols

@@ -57,6 +57,16 @@ class Column
     # returns gap rectangle in world space
     new paper.Rectangle([@x1, @y], [@w, @gapHeight])
 
+  allWalls: ->
+    [new paper.Path.Line([@x1, 0], [@x1, @y]), # top L
+     new paper.Path.Line([@x1 + @w, 0], [@x1 + @w, @y]), # top R
+     new paper.Path.Line([@x1, @y], [@x1 + @w, @y]), # gaptop
+     new paper.Path.Line([@x1, @y + @gapHeight], [@x1 + @w, @y]), # gapbottom
+     new paper.Path.Line([@x1, @y + @gapHeight], [@x1, 999]), # bot L
+     new paper.Path.Line([@x1 + @w, @y + @gapHeight], [@x1 + @w, 999]), # bot R
+    ]
+    
+
   offsetY: (dy) ->
     @y += dy
     @moved = true
@@ -134,5 +144,13 @@ class window.Columns
   byNum: (n) ->
     @cols[n - 1]
 
+  allWalls: () ->
+    # array of Paths for every edge of every wall
+    ret = []
+    for col in @cols
+      ret.push.apply(ret, col.allWalls())
+    ret
+
   step: (dt) ->
     c.step(dt) for c in @cols
+
