@@ -37,6 +37,7 @@ class Column
     @addRockImages(num)
 
     @item.translate(@x1, @y)
+    @wallLines = []
 
   addPreviews: ->
     previewArea = new paper.Group()
@@ -58,12 +59,14 @@ class Column
     new paper.Rectangle([@x1, @y], [@w, @gapHeight])
 
   allWalls: ->
-    [new paper.Path.Line([@x1, 0], [@x1, @y]), # top L
-     new paper.Path.Line([@x1 + @w, 0], [@x1 + @w, @y]), # top R
-     new paper.Path.Line([@x1, @y], [@x1 + @w, @y]), # gaptop
-     new paper.Path.Line([@x1, @y + @gapHeight], [@x1 + @w, @y]), # gapbottom
-     new paper.Path.Line([@x1, @y + @gapHeight], [@x1, 999]), # bot L
-     new paper.Path.Line([@x1 + @w, @y + @gapHeight], [@x1 + @w, 999]), # bot R
+    w.remove() for w in @wallLines
+    @wallLines = [
+      new paper.Path.Line([@x1, 0], [@x1, @y]), # top L
+      new paper.Path.Line([@x1 + @w, 0], [@x1 + @w, @y]), # top R
+      new paper.Path.Line([@x1, @y], [@x1 + @w, @y]), # gaptop
+      new paper.Path.Line([@x1, @y + @gapHeight], [@x1 + @w, @y]), # gapbottom
+      new paper.Path.Line([@x1, @y + @gapHeight], [@x1, 999]), # bot L
+      new paper.Path.Line([@x1 + @w, @y + @gapHeight], [@x1 + @w, 999]), # bot R
     ]
     
 
