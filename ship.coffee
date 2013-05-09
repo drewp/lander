@@ -183,7 +183,7 @@ class window.Ship
     @updatePreviewLine(@idealPreview, pos, idealAngle) if @idealPreview?
     @updatePreviewLine(@currentPreview, pos, @img.matrix.rotation) if @currentPreview?
   
-  step: (dt) ->
+  step: (dt) =>
     @updateFlyToward()
     @updateHeading(dt)
 
@@ -202,5 +202,10 @@ class window.Ship
 
     #@radar.draw(@radar.computePolygon(pos, @heading.angle, 30,
     #            @columns.allWalls()))
+    #
+    switch @state.get()
+      when "play", "play-unlocked"
+        if @finished()
+          @state.set("finish")
       
   position: -> @item.matrix.translation

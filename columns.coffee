@@ -111,7 +111,7 @@ class window.Columns
       getGap: -> new paper.Rectangle([0, 0], [config.introColumn, 0]) # height = config.height
 
     @item.addChild(c.item) for c in @cols
-    @state.onEnter("menu", () => ((c.moved = false) for c in @cols))
+    @state.onEnter("finish", () => (c.moved = false) for c in @cols)
 
   checkMovement: ->
     for i in [0 ... @cols.length]
@@ -152,6 +152,15 @@ class window.Columns
       ret.push.apply(ret, col.allWalls())
     ret
 
-  step: (dt) ->
+  step: (dt) =>
     c.step(dt) for c in @cols
 
+    switch @state.get()
+      when "menu"
+        if @state.elapsedMs() > 1000 && @checkMovement()
+          (c.moved = false) for c in @cols
+          @state.set("menu-away")
+      when "finish"
+        if @state.elapsedMs() > 1000 && @checkMovement()
+          (c.moved = false) for c in @cols
+          @state.set("menu")

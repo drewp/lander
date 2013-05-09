@@ -27,7 +27,7 @@ class window.Menu
         @title.content = "Lander"
         @text.content = "Move any slider to start"
 
-        sec = @state.elapsed() / 1000
+        sec = @state.elapsedMs() / 1000
         
         @item.setMatrix(new paper.Matrix().translate([
           @config.width * 1.3 * (sec / @config.menuAnimationTime),

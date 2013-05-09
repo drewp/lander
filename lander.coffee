@@ -56,7 +56,7 @@ class GameState
     for cb in (@listeners[@state] || [])
       cb()
 
-  elapsed: () =>
+  elapsedMs: () =>
     # ms spent in this state
     now = +new Date()
     now - @changed
@@ -108,24 +108,13 @@ $ ->
   columns.scramble()
   setSlidersToColumns()
 
-  state.onEnter("finish", () ->
+  state.onEnter("menu", () ->
       columns.scramble()
       setSlidersToColumns()
   )    
 
   view.onFrame = (ev) =>
     obj.step(ev.delta) for obj in animated
-
-    switch state.get()
-      when "menu"
-        if columns.checkMovement()
-          state.set("menu-away")
-      when "finish"
-        if columns.checkMovement()
-          state.set("menu")
-      when "play", "play-unlocked"
-        if ship.finished()
-          state.set("finish")
 
     sec = ship.flightElapsedMs() / 1000
     $("#flight").text(sec+" seconds elapsed")
