@@ -182,14 +182,8 @@ class window.Ship
 
     @updatePreviewLine(@idealPreview, pos, idealAngle) if @idealPreview?
     @updatePreviewLine(@currentPreview, pos, @img.matrix.rotation) if @currentPreview?
-  
-  step: (dt) =>
-    @updateFlyToward()
-    @updateHeading(dt)
 
-    @item.translate(@heading.multiply(dt))
-
-    # Resolve ship collision
+  collision: () =>
     pos = @item.matrix.translation
     colNum = @columns.getColumnNum(pos.x)
     if colNum > 0
@@ -199,10 +193,18 @@ class window.Ship
         @item.translate(new paper.Point(0, colGap.topRight.y - (pos.y - collisionRadius)))
       else if pos.y + collisionRadius > colGap.bottomRight.y
         @item.translate(new paper.Point(0, colGap.bottomRight.y - (pos.y + collisionRadius)))
+  
+  step: (dt) =>
+    @updateFlyToward()
+    @updateHeading(dt)
 
-    #@radar.draw(@radar.computePolygon(pos, @heading.angle, 30,
-    #            @columns.allWalls()))
-    #
+    @item.translate(@heading.multiply(dt))
+
+    @collision()
+
+    @radar.draw(@radar.computePolygon(@item.matrix.translation, @heading.angle, 30,
+                @columns.allWalls()))
+    
     switch @state.get()
       when "play", "play-unlocked"
         if @finished()
