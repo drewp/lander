@@ -2,6 +2,7 @@ config =
   showPreviews: true
   autoStart: true
   introColumn: 140
+  exitColumn: 100
   columnCount: 8
   columnWidth: null # computed
   columnLookAhead: 5
@@ -23,7 +24,49 @@ config =
     speed: 120
     maxTurnPerSec: 360
 
-config.columnWidth = (config.width - config.introColumn) / config.columnCount
+config.columnWidth = (config.width - config.introColumn - config.exitColumn) / config.columnCount
+
+class GameState
+  ###
+    init
+
+    menu
+
+    menu-away
+
+    play
+
+    play-unlocked
+
+    finish
+
+    -> menu
+    
+  ###
+  constructor: () ->
+    @listeners = {} # state : [callbacks]
+    @set("init")
+
+  set: (newState) =>
+    if newState == @state
+      return
+    $("#state").text(newState)
+    @state = newState
+    @changed = +new Date()
+    for cb in (@listeners[@state] || [])
+      cb()
+
+  elapsed: () =>
+    # ms spent in this state
+    now = +new Date()
+    now - @changed
+
+  get: () => @state
+
+  onEnter: (state, cb) =>
+    # register listener on transitions to this state
+    @listeners[state] = [] if not @listeners[state]
+    @listeners[state].push(cb)
 
 window.clamp = (x, lo, hi) -> Math.min(hi, Math.max(lo, x))
 
@@ -43,11 +86,19 @@ $ ->
       columns.byNum(n).setFromSlider((127 - se.value) / 127)
   ws = reconnectingWebSocket("ws://localhost:9990/sliders", onMessage)
 
-  columns = new Columns(config)
-  ship = new Ship(config, columns)
-  exhaust = new Exhaust(config, ship.getExhaustSource.bind(ship))
+  state = new GameState()
+  state.set("menu")
 
-  menu = if config.autoStart then null else new Menu(config, "main")
+  columns = new Columns(config, state)
+  ship = new Ship(config, state, columns)
+  exhaust = new Exhaust(config, state, ship.getExhaustSource.bind(ship))
+
+  enter = new Enter(config, state)
+  exit = new Exit(config, state)
+
+  menu = new Menu(config, state, "main")
+
+  animated = [columns, exhaust, enter, exit, menu, ship]
   
   setSlidersToColumns = ->
     for col in columns.cols
@@ -57,23 +108,24 @@ $ ->
   columns.scramble()
   setSlidersToColumns()
 
-  view.onFrame = (ev) ->
-    columns.step(ev.delta)
-    exhaust.step(ev.delta)
+  state.onEnter("finish", () ->
+      columns.scramble()
+      setSlidersToColumns()
+  )    
 
-    if menu != null
-      menu.step(ev.delta)
-      if !menu.isExiting && columns.checkMovement()
-        menu.startExit()
-      else if menu.doneExiting()
-        menu = null
-    else
-      ship.step(ev.delta)
-      if ship.finished()
-        columns.scramble()
-        setSlidersToColumns()
-        ship.resetPosition()
-        menu = new Menu(config, "victory")
+  view.onFrame = (ev) =>
+    obj.step(ev.delta) for obj in animated
+
+    switch state.get()
+      when "menu"
+        if columns.checkMovement()
+          state.set("menu-away")
+      when "finish"
+        if columns.checkMovement()
+          state.set("menu")
+      when "play", "play-unlocked"
+        if ship.finished()
+          state.set("finish")
 
     sec = ship.flightElapsedMs() / 1000
     $("#flight").text(sec+" seconds elapsed")

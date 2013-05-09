@@ -1,6 +1,6 @@
         
 class window.Exhaust
-  constructor: (config, getSource) ->
+  constructor: (config, state, getSource) ->
     @config = config
     @getSource = getSource
 

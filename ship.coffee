@@ -1,7 +1,7 @@
 
 class window.Ship
-  constructor: (config, columns) ->
-    [@config, @columns] = [config, columns]
+  constructor: (config, state, columns) ->
+    [@config, @state, @columns] = [config, state, columns]
     @item = new paper.Group([])
 
     @img = new paper.Raster('img/ship1.png')
@@ -30,15 +30,16 @@ class window.Ship
       @currentPreview.style = {strokeColor: 'blue'}
 
       @radar = new Radar()
+    @state.onEnter("menu", @resetPosition)
 
-  resetPosition: ->
+  resetPosition: =>
     @item.setMatrix(new paper.Matrix().translate(-20, @config.height / 2))
     @path = [ ]
     @flightStartMs = +new Date();
 
   flightElapsedMs: -> +new Date() - @flightStartMs
 
-  finished: -> @item.matrix.translateX > @config.width
+  finished: -> @item.matrix.translateX > (@config.introColumn + @config.columnCount * @config.columnWidth)
 
   getExhaustSource: ->
     return {pt: @item.matrix.translation, dir: @heading.rotate(180)}
@@ -199,7 +200,7 @@ class window.Ship
       else if pos.y + collisionRadius > colGap.bottomRight.y
         @item.translate(new paper.Point(0, colGap.bottomRight.y - (pos.y + collisionRadius)))
 
-    @radar.draw(@radar.computePolygon(pos, @heading.angle, 30,
-                @columns.allWalls()))
+    #@radar.draw(@radar.computePolygon(pos, @heading.angle, 30,
+    #            @columns.allWalls()))
       
   position: -> @item.matrix.translation

@@ -90,8 +90,8 @@ class Column
 
 
 class window.Columns
-  constructor: (config) ->
-    @config = config
+  constructor: (config, state) ->
+    [@config, @state] = [config, state]
     @item = new paper.Group()
 
     w = @config.columnWidth
@@ -111,6 +111,7 @@ class window.Columns
       getGap: -> new paper.Rectangle([0, 0], [config.introColumn, 0]) # height = config.height
 
     @item.addChild(c.item) for c in @cols
+    @state.onEnter("menu", () => ((c.moved = false) for c in @cols))
 
   checkMovement: ->
     for i in [0 ... @cols.length]
