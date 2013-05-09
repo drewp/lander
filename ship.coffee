@@ -198,16 +198,16 @@ class window.Ship
     @updateFlyToward()
     @updateHeading(dt)
 
-    @item.translate(@heading.multiply(dt))
+
+    switch @state.get()
+      when "play", "play-unlocked"
+        @item.translate(@heading.multiply(dt))
+        if @finished()
+          @state.set("finish")
 
     @collision()
 
     @radar.draw(@radar.computePolygon(@item.matrix.translation, @heading.angle, 30,
                 @columns.allWalls()))
-    
-    switch @state.get()
-      when "play", "play-unlocked"
-        if @finished()
-          @state.set("finish")
-      
+          
   position: -> @item.matrix.translation
