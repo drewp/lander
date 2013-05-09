@@ -23,6 +23,8 @@ config =
     imgScale: .3
     speed: 120
     maxTurnPerSec: 360
+  radar:
+    showPoly: false
 
 config.columnWidth = (config.width - config.introColumn - config.exitColumn) / config.columnCount
 

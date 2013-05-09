@@ -29,7 +29,7 @@ class window.Ship
       @currentPreview = new paper.Path.Line([0,0], [0,0])
       @currentPreview.style = {strokeColor: 'blue'}
 
-      @radar = new Radar()
+      @radar = new Radar(@config)
     @state.onEnter("menu", @resetPosition)
 
   resetPosition: =>
