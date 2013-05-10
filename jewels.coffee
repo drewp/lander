@@ -54,7 +54,7 @@ class window.JewelCounter
 
   reset: ->
     @item.matrix.reset()
-    @item.translate(@config.width - 64, 128)
+    @item.translate(@config.width - 57, 30)
     @collected = 0
     @jewels = [ ]
     for i in [0 ... @config.jewel.count]

@@ -97,11 +97,11 @@ $ ->
 
   columns = new Columns(config, state)
   ship = new Ship(config, state, columns)
+  enter = new Enter(config, state)
+  exit = new Exit(config, state)
   jewelCounter = new JewelCounter(config, state, ship)
   exhaust = new Exhaust(config, state, ship.getExhaustSource.bind(ship))
 
-  enter = new Enter(config, state)
-  exit = new Exit(config, state)
 
   menu = new Menu(config, state, "main")
 
