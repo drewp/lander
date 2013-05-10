@@ -1,6 +1,5 @@
 config =
   showPreviews: false
-  autoStart: true
   introColumn: 140
   exitColumn: 100
   columnCount: 8
@@ -26,6 +25,7 @@ config =
   radar:
     showPoly: false
   jewel:
+    count: 2
     collisionRadius: 15
     imgScale: .35
     counterScale: .4
@@ -97,7 +97,7 @@ $ ->
 
   columns = new Columns(config, state)
   ship = new Ship(config, state, columns)
-  jewelCounter = new JewelCounter(config, state, ship, 3)
+  jewelCounter = new JewelCounter(config, state, ship)
   exhaust = new Exhaust(config, state, ship.getExhaustSource.bind(ship))
 
   enter = new Enter(config, state)

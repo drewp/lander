@@ -39,8 +39,8 @@ class window.Jewel
 
 
 class window.JewelCounter
-  constructor: (config, state, ship, numJewels) ->
-    [@config, @state, @ship, @numJewels] = [config, state, ship, numJewels]
+  constructor: (config, state, ship) ->
+    [@config, @state, @ship] = [config, state, ship]
 
     @item = new paper.Group([])
     @img = new paper.Raster('img/jewel.png')
@@ -57,15 +57,15 @@ class window.JewelCounter
     @item.translate(@config.width - 64, 128)
     @collected = 0
     @jewels = [ ]
-    for i in [0 ... @numJewels]
+    for i in [0 ... @config.jewel.count]
       @jewels[i] = new Jewel(@config, this)
     @pulseTimer = -1
     @flyoutTimer = 0
-    @text.content = @collected + " / " + @numJewels
+    @text.content = @collected + " / " + @config.jewel.count
 
   onJewelCollected: ->
     ++@collected
-    @text.content = @collected + " / " + @numJewels
+    @text.content = @collected + " / " + @config.jewel.count
     @pulseTimer = 0
 
   step: (dt) ->
@@ -85,5 +85,5 @@ class window.JewelCounter
         if @pulseTimer > 0.4
           @img.matrix.scaleX = @img.matrix.scaleY = @config.jewel.counterScale
           @pulseTimer = -1
-          if @collected >= @numJewels
+          if @collected >= @config.jewel.count
             @state.set("play-unlocked")

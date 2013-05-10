@@ -1,5 +1,10 @@
 # other simple objects in the scene
 
+blink = (item, periodMs, onTimeMs, fade) ->
+  now = +(new Date())
+  item.opacity = fade * item.opacity + (1 - fade) * ((now % periodMs) > onTimeMs)
+  
+
 class window.Enter
   constructor: (config, state) ->
     [@config, @state] = [config, state]
@@ -16,9 +21,8 @@ class window.Enter
   step: (dt) =>
     if (@state.get() in ["menu", "menu-away"] ||
         (@state.get() == "play" && @state.elapsedMs() < 2000))
-      now = +(new Date())
       @lights.visible = true
-      @lights.opacity = .3 * @lights.opacity + .7 * ((now % 2000) > 1000)
+      blink(@lights, 2000, 1000, .3)
     else
       @lights.visible = false
 
@@ -26,18 +30,34 @@ class window.Exit
   constructor: (config, state) ->
     [@config, @state] = [config, state]
 
-    @img = new paper.Group()
-    @closed = new paper.Raster("img/exit-closed.png")
-    @open = new paper.Raster("img/exit-open.png")
-    @img.addChild(@closed)
-    @img.addChild(@open)
-    @closed.onLoad = () =>
-      @img.translate([@config.introColumn +
+
+    @exit = new paper.Raster("img/exit.png")
+    @bottom = new paper.Raster("img/exitdoor-bottom.png")
+    @top = new paper.Raster("img/exitdoor-top.png")
+    @lights = new paper.Raster("img/exit-lights.png")
+
+    @grp = new paper.Group([@bottom, @top, @exit, @lights])
+
+    @exit.onLoad = () =>
+      @grp.scale(@config.height / @exit.height)
+      @grp.translate([@config.introColumn +
                       @config.columnCount * @config.columnWidth +
-                      @closed.bounds.width / 2,
+                      @config.exitColumn / 2 - 15,
                       @config.height / 2])
 
   step: (dt) =>
-    opened = @state.get() == "play-unlocked" || @state.get() == "finish"
-    @open.visible = opened
-    @closed.visible = not opened
+    if @state.get() in ["play", "play-unlocked", "finish"]
+      @lights.visible = true
+      blink(@lights, 800, 400, .3)
+    else
+      @lights.visible = false
+
+    if @state.get() == "play-unlocked"
+      @bottom.matrix.translateY = clamp(@state.elapsedMs() / 10, 0, 60)
+      @top.matrix.translateY = -@bottom.matrix.translateY
+    else
+      @top.matrix.translateY = 0
+      @bottom.matrix.translateY = 0
+    #opened = @state.get() == "play-unlocked" || @state.get() == "finish"
+    #@open.visible = opened
+    #@closed.visible = not opened
