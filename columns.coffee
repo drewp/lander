@@ -34,7 +34,8 @@ class Column
     @item.addChild(@top)
     @item.addChild(@bottom)
 
-    @addRockImages(num)
+    if @config.enableColumnTextures
+      @addRockImages(num)
 
     @item.translate(@x1, @y)
 

@@ -1,5 +1,5 @@
 config =
-  showPreviews: false
+  showPreviews: true
   introColumn: 140
   exitColumn: 100
   columnCount: 8
@@ -9,7 +9,10 @@ config =
   width: 1100
   height: 600
   menuAnimationTime: 1
+  enableDoors: false
+  enableColumnTextures: false
   exhaust:
+    enabled: false
     opacity: .2
     bornPerSec: 20
     drift:
@@ -23,6 +26,7 @@ config =
     speed: 120
     maxTurnPerSec: 360
   radar:
+    enabled: true
     showPoly: false
   jewel:
     count: 2
@@ -97,15 +101,20 @@ $ ->
 
   columns = new Columns(config, state)
   ship = new Ship(config, state, columns)
-  enter = new Enter(config, state)
-  exit = new Exit(config, state)
+  if config.enableDoors
+    enter = new Enter(config, state)
+    exit = new Exit(config, state)
+  else
+    enter = exit = null
   jewelCounter = new JewelCounter(config, state, ship)
-  exhaust = new Exhaust(config, state, ship.getExhaustSource.bind(ship))
+  exhaust = if config.exhaust.enabled then new Exhaust(config, state, ship.getExhaustSource.bind(ship)) else null
 
 
   menu = new Menu(config, state, "main")
 
-  animated = [columns, exhaust, enter, exit, menu, ship, jewelCounter]
+  animated = [columns, exhaust, 
+              enter, exit, 
+              menu, ship, jewelCounter]
   
   setSlidersToColumns = ->
     for col in columns.cols
@@ -122,7 +131,9 @@ $ ->
   )    
 
   view.onFrame = (ev) =>
-    obj.step(ev.delta) for obj in animated
+    for obj in animated
+      if obj != null
+        obj.step(ev.delta)
 
     sec = ship.flightElapsedMs() / 1000
     $("#flight").text(sec+" seconds elapsed")
