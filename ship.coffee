@@ -96,6 +96,11 @@ class window.Ship
   # Otherwise, the ship reverses direction.
   updateFlyToward: ->
     @flyTowardPreview.position = @flyToward if @flyTowardPreview?
+    if @state.get() == "finish"
+      @flyToward.x = @config.width + 100
+      @flyToward.y = @config.height / 2
+      return
+
     pos = @item.matrix.translation
     colNum = if @path.length > 0 then @columns.getColumnNum(@path[0].x) else -1
     if colNum == -1
@@ -112,7 +117,7 @@ class window.Ship
         @pathIndex = 0
         @flyToward = @path[0]
       return
-    if colNum == 8
+    if colNum == 8 && @state.get() == "play-unlocked"
       col = @columns.byNum(8)
       @flyToward.x = col.x1 + col.w + 20
       @flyToward.y = col.y + (col.gapHeight / 2)
@@ -121,14 +126,14 @@ class window.Ship
     @rebuildPath(colNum)
     @pathIndex = if @pathIndex >= @path.length then @path.length - 1 else @pathIndex
     @flyToward = @path[@pathIndex]
-    if (pos.subtract(@flyToward).length > 15)
+    if pos.subtract(@flyToward).length > 15
       return
 
     if @pathIndex == @path.length - 1
       colGap = null
       nextGap = null
       isOOB = false
-      if @forward
+      if @forward && colNum < 8
         colGap = @columns.byNum(colNum).getGap()
         nextGap = @columns.byNum(colNum + 1).getGap()
         isOOB = nextGap.topLeft.y < 0 || nextGap.bottomLeft.y > @config.height
@@ -198,9 +203,8 @@ class window.Ship
     @updateFlyToward()
     @updateHeading(dt)
 
-
     switch @state.get()
-      when "play", "play-unlocked"
+      when "play", "play-unlocked", "finish"
         @item.translate(@heading.multiply(dt))
         if @finished()
           @state.set("finish")

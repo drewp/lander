@@ -26,6 +26,6 @@ class window.Exit
                       @config.height / 2])
 
   step: (dt) =>
-    opened = @state.get() == "play-unlocked"
+    opened = @state.get() == "play-unlocked" || @state.get() == "finish"
     @open.visible = opened
     @closed.visible = not opened

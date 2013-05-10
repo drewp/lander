@@ -25,6 +25,10 @@ config =
     maxTurnPerSec: 360
   radar:
     showPoly: false
+  jewel:
+    collisionRadius: 15
+    imgScale: .35
+    counterScale: .4
 
 config.columnWidth = (config.width - config.introColumn - config.exitColumn) / config.columnCount
 
@@ -93,6 +97,7 @@ $ ->
 
   columns = new Columns(config, state)
   ship = new Ship(config, state, columns)
+  jewelCounter = new JewelCounter(config, state, ship, 3)
   exhaust = new Exhaust(config, state, ship.getExhaustSource.bind(ship))
 
   enter = new Enter(config, state)
@@ -100,7 +105,7 @@ $ ->
 
   menu = new Menu(config, state, "main")
 
-  animated = [columns, exhaust, enter, exit, menu, ship]
+  animated = [columns, exhaust, enter, exit, menu, ship, jewelCounter]
   
   setSlidersToColumns = ->
     for col in columns.cols
@@ -113,6 +118,7 @@ $ ->
   state.onEnter("menu", () ->
       columns.scramble()
       setSlidersToColumns()
+      jewelCounter.reset()
   )    
 
   view.onFrame = (ev) =>
