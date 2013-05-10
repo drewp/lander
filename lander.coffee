@@ -1,5 +1,5 @@
 config =
-  showPreviews: true
+  showPreviews: false
   autoStart: true
   introColumn: 140
   exitColumn: 100
