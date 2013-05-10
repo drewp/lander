@@ -1,5 +1,5 @@
 config =
-  showPreviews: true
+  showPreviews: false
   introColumn: 140
   exitColumn: 100
   columnCount: 8
@@ -9,10 +9,10 @@ config =
   width: 1100
   height: 600
   menuAnimationTime: 1
-  enableDoors: false
-  enableColumnTextures: false
+  enableDoors: true
+  enableColumnTextures: true
   exhaust:
-    enabled: false
+    enabled: true
     opacity: .2
     bornPerSec: 20
     drift:
