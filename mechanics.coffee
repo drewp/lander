@@ -10,12 +10,12 @@ class window.Enter
 
     window.enter = @grp
     @img.onLoad = =>
-      @grp.translate(@config.introColumn / 2 + 70, @config.height / 2)
+      @grp.translate(@config.introColumn / 2 - 8, @config.height / 2)
       @grp.scale(@config.height / @img.height)
 
   step: (dt) =>
     if (@state.get() in ["menu", "menu-away"] ||
-      (@state.get() == "play" && @state.elapsedMs() < 2000))
+        (@state.get() == "play" && @state.elapsedMs() < 2000))
       now = +(new Date())
       @lights.visible = true
       @lights.opacity = .3 * @lights.opacity + .7 * ((now % 2000) > 1000)
