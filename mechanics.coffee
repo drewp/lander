@@ -3,7 +3,6 @@
 blink = (item, periodMs, onTimeMs, fade) ->
   now = +(new Date())
   item.opacity = fade * item.opacity + (1 - fade) * ((now % periodMs) > onTimeMs)
-  
 
 class window.Enter
   constructor: (config, state) ->

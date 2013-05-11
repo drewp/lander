@@ -14,7 +14,7 @@ class window.Ship
     @path = [ ]
     @pathIndex = 0
     @forward = true
-  
+   
     if @config.showPreviews
       @collisionCircle = new paper.Path.Circle([0,0], @config.ship.collisionRadius)
       @collisionCircle.style = {strokeColor: 'white'}
@@ -29,7 +29,7 @@ class window.Ship
       @currentPreview = new paper.Path.Line([0,0], [0,0])
       @currentPreview.style = {strokeColor: 'blue'}
 
-    @radar = new Radar(@config)
+    @radar = if @config.radar.enabled then new Radar(@config) else null
     @state.onEnter("menu", @resetPosition)
 
   resetPosition: =>
@@ -211,7 +211,8 @@ class window.Ship
 
     @collision()
 
-    @radar.draw(@radar.computePolygon(@item.matrix.translation, @heading.angle, 30,
-                @columns.allWalls()))
+    if @radar != null
+      @radar.draw(@radar.computePolygon(@item.matrix.translation, @heading.angle, 30,
+                  @columns.allWalls()))
           
   position: -> @item.matrix.translation
