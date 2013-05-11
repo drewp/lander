@@ -33,6 +33,8 @@ config =
     collisionRadius: 15
     imgScale: .35
     counterScale: .4
+  roller:
+    enabled: true
 
 config.columnWidth = (config.width - config.introColumn - config.exitColumn) / config.columnCount
 
@@ -99,6 +101,11 @@ $ ->
   state = new GameState()
   state.set("menu")
 
+  lyr1 = new paper.Layer()
+  rollers = if config.roller.enabled then new Rollers(config, state, lyr1) else null
+
+  lyr2 = new paper.Layer()
+  
   columns = new Columns(config, state)
   ship = new Ship(config, state, columns)
   if config.enableDoors
@@ -109,11 +116,12 @@ $ ->
   jewelCounter = new JewelCounter(config, state, ship)
   exhaust = if config.exhaust.enabled then new Exhaust(config, state, ship.getExhaustSource.bind(ship)) else null
 
-
   menu = new Menu(config, state, "main")
 
-  animated = [columns, exhaust, 
-              enter, exit, 
+  animated = [
+              rollers,
+              columns, exhaust, 
+              enter, exit,
               menu, ship, jewelCounter]
   
   setSlidersToColumns = ->
