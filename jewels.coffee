@@ -42,6 +42,7 @@ class window.JewelCounter
   constructor: (config, state, ship) ->
     [@config, @state, @ship] = [config, state, ship]
 
+    @jewels = []
     @item = new paper.Group([])
     @img = new paper.Raster('img/jewel.png')
     @img.scale(@config.jewel.counterScale)
@@ -51,11 +52,13 @@ class window.JewelCounter
     @text.getJustification = () -> "center"
     @item.addChild(@text)
     @reset()
+    @state.onEnter("menu", @reset)
 
-  reset: ->
+  reset: =>
     @item.matrix.reset()
     @item.translate(@config.width - 57, 30)
     @collected = 0
+    j.item.remove() for j in @jewels
     @jewels = [ ]
     for i in [0 ... @config.jewel.count]
       @jewels[i] = new Jewel(@config, this)
