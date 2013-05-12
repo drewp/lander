@@ -1,7 +1,7 @@
 
 class window.Jewel
-  constructor: (config, target) ->
-    @config = config
+  constructor: (config, sound, target) ->
+    [@config, @sound] = [config, sound]
     @item = new paper.Group([])
 
     @img = new paper.Raster('img/jewel.png')
@@ -35,12 +35,13 @@ class window.Jewel
       shipPos = ship.item.matrix.translation
       jewelPos = @item.matrix.translation
       if shipPos.subtract(jewelPos).length <= @config.ship.collisionRadius + @config.jewel.collisionRadius
+        @sound.play("coin")
         @isExiting = true
 
 
 class window.JewelCounter
-  constructor: (config, state, ship) ->
-    [@config, @state, @ship] = [config, state, ship]
+  constructor: (config, sound, state, ship) ->
+    [@config, @sound, @state, @ship] = [config, sound, state, ship]
 
     @jewels = []
     @item = new paper.Group([])
@@ -61,7 +62,7 @@ class window.JewelCounter
     j.item.remove() for j in @jewels
     @jewels = [ ]
     for i in [0 ... @config.jewel.count]
-      @jewels[i] = new Jewel(@config, this)
+      @jewels[i] = new Jewel(@config, @sound, this)
     @pulseTimer = -1
     @flyoutTimer = 0
     @text.content = @collected + " / " + @config.jewel.count

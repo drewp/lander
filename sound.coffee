@@ -4,6 +4,7 @@ class window.Sound
 
     @effects = {
       explode: @load("snd/explode.mp3")
+      coin: @load("snd/coin.mp3")
     }
 
   play: (name, onFinished) =>

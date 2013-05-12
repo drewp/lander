@@ -116,7 +116,7 @@ $ ->
     exit = new Exit(config, state)
   else
     enter = exit = null
-  jewelCounter = new JewelCounter(config, state, ship)
+  jewelCounter = new JewelCounter(config, sound, state, ship)
   exhaust = if config.exhaust.enabled then new Exhaust(config, state, ship.getExhaustSource.bind(ship)) else null
 
   menu = new Menu(config, state, "main")
