@@ -141,13 +141,17 @@ $ ->
       jewelCounter.reset()
   )    
 
+  gameStartTimeMs = 0
+  state.onEnter("play", () -> (gameStartTimeMs = +new Date()))
+
   view.onFrame = (ev) =>
     for obj in animated
       if obj != null
         obj.step(ev.delta)
 
-    sec = ship.flightElapsedMs() / 1000
-    $("#flight").text(sec+" seconds elapsed")
+    if state.get() in ["play", "playUnlocked"]
+      sec = ((+new Date()) - gameStartTimeMs) / 1000
+      $("#flight").text(sec+" seconds elapsed")
 
   tool = new paper.Tool()
   tool.onMouseDown = (ev) ->
