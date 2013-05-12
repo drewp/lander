@@ -195,8 +195,17 @@ class window.Ship
       colGap = @columns.byNum(colNum).getGap()
       collisionRadius = @config.ship.collisionRadius
       if pos.y - collisionRadius < colGap.topRight.y
+        if @state.get() != "explode"
+          console.log("top collision")
+          @state.set("explode")
+        return
+
         @item.translate(new paper.Point(0, colGap.topRight.y - (pos.y - collisionRadius)))
       else if pos.y + collisionRadius > colGap.bottomRight.y
+        if @state.get() != "explode"
+          console.log("bottom collision")
+          @state.set("explode")
+        return
         @item.translate(new paper.Point(0, colGap.bottomRight.y - (pos.y + collisionRadius)))
   
   step: (dt) =>

@@ -101,6 +101,9 @@ $ ->
   state = new GameState()
   state.set("menu")
 
+  sound = new Sound()
+  state.onEnter("explode", => sound.play("explode", () => state.set("menu")))
+  
   lyr1 = new paper.Layer()
   rollers = if config.roller.enabled then new Rollers(config, state, lyr1) else null
 
