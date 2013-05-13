@@ -85,6 +85,11 @@ window.clamp = (x, lo, hi) -> Math.min(hi, Math.max(lo, x))
 window.tween = (a, b, t) -> (a + (b - a) * t)
 
 $ ->
+
+  stats = new Stats()
+  stats.setMode(0)
+  $(document.body).append($(stats.domElement).css({position: 'absolute', top: 0, right: 0}))
+  
   canvas = document.getElementById("game")
   canvas.width = config.width
   canvas.height = config.height
@@ -145,6 +150,7 @@ $ ->
   state.onEnter("play", () -> (gameStartTimeMs = +new Date()))
 
   view.onFrame = (ev) =>
+    stats.begin()
     for obj in animated
       if obj != null
         obj.step(ev.delta)
@@ -152,6 +158,7 @@ $ ->
     if state.get() in ["play", "playUnlocked"]
       sec = ((+new Date()) - gameStartTimeMs) / 1000
       $("#flight").text(sec+" seconds elapsed")
+    stats.end()
 
   tool = new paper.Tool()
   tool.onMouseDown = (ev) ->
