@@ -49,7 +49,6 @@ class window.Exit
     @bg.onLoad = =>
       @bg.scale(@config.exitColumn / @bg.width, @config.height / @bg.height)
       @bg.translate(exitBox.center)
-      @bg.selected = true
     
     @exit = new paper.Raster("img/exit.png")
     @bottom = new paper.Raster("img/exitdoor-bottom.png")

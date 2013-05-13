@@ -11,6 +11,7 @@ config =
   menuAnimationTime: 1
   enableDoors: true
   enableColumnTextures: true
+  explodeOnCollision: false
   exhaust:
     enabled: true
     opacity: .2
