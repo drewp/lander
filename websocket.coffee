@@ -23,7 +23,6 @@ window.reconnectingWebSocket = (url, onMessage) ->
     ws.onmessage = (evt) ->
       onMessage(JSON.parse(evt.data))
     ws.bufferedSendJs = (msg) ->
-      console.log("state", ws.readyState)
       if ws.readyState != WebSocket.OPEN
         bufferedMsgs.push(msg)
       else

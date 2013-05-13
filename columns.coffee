@@ -169,7 +169,6 @@ class window.Columns
         )
       )(path, s)
     async.parallel(allSpriteFuncs, (err, results) =>
-      console.log("result sprites", results)
       @sprites = results
       cb(null, @sprites)
     )
