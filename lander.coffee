@@ -1,7 +1,7 @@
 config =
   showPreviews: false
   introColumn: 140
-  exitColumn: 100
+  exitColumn: 150
   columnCount: 8
   columnWidth: null # computed
   columnLookAhead: 5

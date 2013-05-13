@@ -8,14 +8,27 @@ class window.Enter
   constructor: (config, state) ->
     [@config, @state] = [config, state]
 
+    @bracket = new paper.Group()
     @img = new paper.Raster("img/enter.png")
     @lights = new paper.Raster("img/enter-lights.png")
     @grp = new paper.Group([@img, @lights])
 
-    window.enter = @grp
     @img.onLoad = =>
       @grp.translate(@config.introColumn / 2 - 8, @config.height / 2)
       @grp.scale(@config.height / @img.height)
+
+    r = new paper.Raster("img/rollerbracket.jpg")
+    grid = @config.introColumn
+    r.onLoad = =>
+      r.fitBounds(new paper.Rectangle(0, 0, grid, grid))
+      r.opacity = .5
+      @tile = new paper.Symbol(r)
+      y = 0
+      while y < @config.height
+        @bracket.addChild(@tile.place([grid / 2, y + grid / 2]))
+        y += grid
+    # this should be fine but it makes paperjs have errors
+    #rasterizeGroup(@bracket)
 
   step: (dt) =>
     if (@state.get() in ["menu", "menu-away"] ||
@@ -29,7 +42,15 @@ class window.Exit
   constructor: (config, state) ->
     [@config, @state] = [config, state]
 
+    exitBox = new paper.Rectangle(new paper.Point(@config.width - @config.exitColumn, 0),
+                                  new paper.Size(@config.exitColumn, @config.height))
 
+    @bg = new paper.Raster("img/rollerbracketb.jpg")
+    @bg.onLoad = =>
+      @bg.scale(@config.exitColumn / @bg.width, @config.height / @bg.height)
+      @bg.translate(exitBox.center)
+      @bg.selected = true
+    
     @exit = new paper.Raster("img/exit.png")
     @bottom = new paper.Raster("img/exitdoor-bottom.png")
     @top = new paper.Raster("img/exitdoor-top.png")
@@ -38,11 +59,9 @@ class window.Exit
     @grp = new paper.Group([@bottom, @top, @exit, @lights])
 
     @exit.onLoad = () =>
+      @grp.translate(new paper.Point(45, 0))
       @grp.scale(@config.height / @exit.height)
-      @grp.translate([@config.introColumn +
-                      @config.columnCount * @config.columnWidth +
-                      @config.exitColumn / 2 - 15,
-                      @config.height / 2])
+      @grp.translate(exitBox.leftCenter)
 
   step: (dt) =>
     if @state.get() in ["play", "play-unlocked", "finish"]

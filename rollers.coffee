@@ -11,11 +11,11 @@ class window.Rollers
       @img.scale(scl)
       sym = new paper.Symbol(@img)
       x = @config.introColumn  + @config.columnWidth / 2
-      while x < @config.width
+      while x < @config.width - @config.exitColumn
         ras = @bakeColumn(sym, h, scl)
         ras.translate(x, 0)
         lyr.addChild(ras)
-        ras.opacity = .3
+        #ras.opacity = .3
         x += @config.columnWidth
 
   bakeColumn: (sym, h, scl) =>
@@ -24,9 +24,7 @@ class window.Rollers
     while y < @config.height
       rollerColumn.addChild(sym.place(new paper.Point(0, y)))
       y += h * scl
-    ras = rollerColumn.rasterize()
-    rollerColumn.removeChildren()
-    ras
+    rasterizeGroup(rollerColumn)
 
   step: (dt) =>
     
