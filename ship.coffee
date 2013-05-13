@@ -33,7 +33,7 @@ class window.Ship
     @state.onEnter("menu", @resetPosition)
 
   resetPosition: =>
-    @item.setMatrix(new paper.Matrix().translate(-20, @config.height / 2))
+    @item.setMatrix(new paper.Matrix().translate(50, @config.height / 2))
     @path = [ ]
     @flightStartMs = +new Date();
 
