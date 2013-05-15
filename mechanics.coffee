@@ -8,27 +8,17 @@ class window.Enter
   constructor: (config, state) ->
     [@config, @state] = [config, state]
 
-    @bracket = new paper.Group()
-    @img = new paper.Raster("img/enter.png")
+  makeStatic: () =>
+    @align(new paper.Raster("img/enter.png"))
+    
+  makeLights: () =>
     @lights = new paper.Raster("img/enter-lights.png")
-    @grp = new paper.Group([@img, @lights])
-
-    @img.onLoad = =>
-      @grp.translate(@config.introColumn / 2 - 8, @config.height / 2)
-      @grp.scale(@config.height / @img.height)
-
-    r = new paper.Raster("img/rollerbracket.jpg")
-    grid = @config.introColumn
-    r.onLoad = =>
-      r.fitBounds(new paper.Rectangle(0, 0, grid, grid))
-      r.opacity = .5
-      @tile = new paper.Symbol(r)
-      y = 0
-      while y < @config.height
-        @bracket.addChild(@tile.place([grid / 2, y + grid / 2]))
-        y += grid
-    # this should be fine but it makes paperjs have errors
-    #rasterizeGroup(@bracket)
+    @align(@lights)
+    
+  align: (img) =>
+    img.onLoad = =>
+      img.translate(@config.introColumn / 2 - 40, @config.height / 2)
+      img.scale(@config.height / img.height)  
 
   step: (dt) =>
     if (@state.get() in ["menu", "menu-away"] ||
@@ -42,25 +32,26 @@ class window.Exit
   constructor: (config, state) ->
     [@config, @state] = [config, state]
 
-    exitBox = new paper.Rectangle(new paper.Point(@config.width - @config.exitColumn, 0),
+    @exitBox = new paper.Rectangle(new paper.Point(@config.width - @config.exitColumn, 0),
                                   new paper.Size(@config.exitColumn, @config.height))
-
-    @bg = new paper.Raster("img/rollerbracketb.jpg")
-    @bg.onLoad = =>
-      @bg.scale(@config.exitColumn / @bg.width, @config.height / @bg.height)
-      @bg.translate(exitBox.center)
     
-    @exit = new paper.Raster("img/exit.png")
+
+  makeStatic: () =>
     @bottom = new paper.Raster("img/exitdoor-bottom.png")
     @top = new paper.Raster("img/exitdoor-top.png")
-    @lights = new paper.Raster("img/exit-lights.png")
+    ex = new paper.Raster("img/exit.png")
+    @align(ex, [ex, @bottom, @top])
 
-    @grp = new paper.Group([@bottom, @top, @exit, @lights])
+  makeLights: () =>
+    @align(@lights = new paper.Raster("img/exit-lights.png"))
 
-    @exit.onLoad = () =>
-      @grp.translate(new paper.Point(45, 0))
-      @grp.scale(@config.height / @exit.height)
-      @grp.translate(exitBox.leftCenter)
+  align: (img, objs) =>
+    img.onLoad = () =>
+      objs = objs || [img]
+      for obj in objs
+        obj.translate(new paper.Point(45, 0))
+        obj.scale(@config.height / img.height)
+        obj.translate(@exitBox.leftCenter)
 
   step: (dt) =>
     if @state.get() in ["play", "play-unlocked", "finish"]
@@ -75,6 +66,4 @@ class window.Exit
     else
       @top.matrix.translateY = 0
       @bottom.matrix.translateY = 0
-    #opened = @state.get() == "play-unlocked" || @state.get() == "finish"
-    #@open.visible = opened
-    #@closed.visible = not opened
+    

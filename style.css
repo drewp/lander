@@ -6,3 +6,6 @@ body {
     border: 1px solid #333;
     background: #000;
 }
+.vis {
+    color: green;
+}

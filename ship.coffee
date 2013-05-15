@@ -4,15 +4,35 @@ class window.Ship
     [@config, @state, @columns] = [config, state, columns]
     @item = new paper.Group([])
 
-    @img = new paper.Raster('img/ship1.png')
-    @img.scale(@config.ship.imgScale)
+    @shadow = new paper.Group()
+    @item.addChild(@shadow)
+
+    @img = new paper.Raster('img/ship/ship.012.png')
     @item.addChild(@img)
+
+    @img.scale(@config.ship.imgScale)
+
+    if @config.ship.enableShadow
+      @img.onLoad = =>
+        copy = @img.rasterize()
+        console.log("shadowing", copy.width, +new Date())
+        for y in [0...copy.height]
+          for x in [0...copy.width]
+            c = copy.getPixel(x, y)
+            c.brightness = 0
+            copy.setPixel(x, y, c)
+        @shadow.addChild(copy)
+        console.log("done", +new Date())
+      @shadow.translate(10, 10)
+    
     @resetPosition()
 
     @heading = new paper.Point(@config.ship.speed, 0)
     @flyToward = new paper.Point(40, @config.height / 2)
     @path = [ ]
     @pathIndex = 0
+    @pathObj = new paper.Path([])
+    @pathObj.visible = @config.showPreviews
     @forward = true
    
     if @config.showPreviews
@@ -46,9 +66,8 @@ class window.Ship
 
   # Used by rebuildPath. Moves a point away from the column. The direction that
   # the point is moved depends on which direction the path is going.
-  # TODO: Load dist from config?
   getOffsetPoint: (p, moveForward) ->
-    dist = 24
+    dist = @config.ship.collisionRadius * 2
     point = new paper.Point(p)
     if @forward
       point.y -= dist
@@ -95,6 +114,7 @@ class window.Ship
   # to the next column, then a new path is generated for that column.
   # Otherwise, the ship reverses direction.
   updateFlyToward: ->
+    diam = @config.ship.collisionRadius * 2
     @flyTowardPreview.position = @flyToward if @flyTowardPreview?
     if @state.get() == "finish"
       @flyToward.x = @config.width + 100
@@ -109,7 +129,7 @@ class window.Ship
       if colGap.topLeft.y < 0 || colGap.bottomLeft.y > @config.height
         @flyToward.x = @config.introColumn / 2
         @flyToward.y = @config.height / 2
-      else if (pos.subtract(@flyToward).length > 15)
+      else if (pos.subtract(@flyToward).length > 1.5 * diam)
         @flyToward.x = col.x1
         @flyToward.y = col.y + (col.gapHeight / 2)
       else
@@ -119,14 +139,19 @@ class window.Ship
       return
     if colNum == 8 && @state.get() == "play-unlocked"
       col = @columns.byNum(8)
-      @flyToward.x = col.x1 + col.w + 20
+      @flyToward.x = col.x1 + col.w + 1.5 * diam
       @flyToward.y = col.y + (col.gapHeight / 2)
       return
 
     @rebuildPath(colNum)
+
+    @pathObj.removeSegments()
+    @path.map((s) => @pathObj.add(s))
+    @pathObj.style = {strokeWidth: 3, strokeColor: 'red'}
+    
     @pathIndex = if @pathIndex >= @path.length then @path.length - 1 else @pathIndex
     @flyToward = @path[@pathIndex]
-    if pos.subtract(@flyToward).length > 15
+    if pos.subtract(@flyToward).length > 1.5 * diam
       return
 
     if @pathIndex == @path.length - 1
@@ -144,7 +169,7 @@ class window.Ship
       if colGap != null
         topInt = paper.Point.max(colGap.topRight, nextGap.topLeft)
         botInt = paper.Point.min(colGap.bottomRight, nextGap.bottomLeft)
-        if topInt.y >= botInt.y - @config.ship.collisionRadius * 2 || isOOB
+        if topInt.y >= botInt.y - diam || isOOB
           @forward = !@forward
         else
           colNum = if @forward then colNum + 1 else colNum - 1
@@ -160,7 +185,10 @@ class window.Ship
     path.lastSegment.point = pt.add(new paper.Point([100, 0]).rotate(angle))
 
   setImageAngle: (angle) ->
-    @img.rotate(angle - @img.matrix.rotation)
+    @item.rotate(angle - @item.matrix.rotation)
+
+  updatePermittedArea: () =>
+    
 
   # Rotate the ship smoothly
   updateHeading: (dt) ->
@@ -208,6 +236,7 @@ class window.Ship
       @item.translate(new paper.Point(0, ty))
   
   step: (dt) =>
+    @updatePermittedArea()
     @updateFlyToward()
     @updateHeading(dt)
 

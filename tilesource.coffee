@@ -35,9 +35,16 @@ class window.TileSource
       @pending.push(=> makeSymbol(topLeft, size, cb))
 
 
-window.rasterizeGroup = (g) ->
+window.loadSymbol = (path, cb) ->
+  ras = new paper.Raster(path)
+  sym = new paper.Symbol(ras)
+  ras.onLoad = () ->
+    cb(null, sym)
+  return
+
+window.rasterizeGroup = (g, rasterizeRes) ->
   # replace g children with one rasterized version
-  r = g.rasterize()
+  r = g.rasterize(rasterizeRes)
   g.removeChildren()
   g.addChild(r)
   g

@@ -10,40 +10,46 @@ class Column
   # |
   # |
   #
-  constructor: (config, onSprites, num, x1, w, gap) ->
-    # i is 1-based index
-    [@config, @num, @x1, @w] = [config, num, x1, w]
-    @item = new paper.Group()
+  constructor: (config, onSprites, x1, w, gapHeight) ->
+    [@config, @x1, @w, @gapHeight] = [config, x1, w, gapHeight]
     # item's origin is at the * in the diagram
+    
+    @onSprites = onSprites
 
     @y = 200 + Math.random() * 200
     @moved = false
-    @gapHeight = gap
 
     @sliderOffset = Math.random() * 1.6 - .8
     @correctCenter = @config.height / 2 - @gapHeight / 2
-
+   
     @rockAreas = [
-      new paper.Rectangle(new paper.Point([0,0]), new paper.Size(@w, -1000)),
-      new paper.Rectangle(new paper.Point([0,@gapHeight]), new paper.Size(@w, 1000))]
+      new paper.Rectangle(new paper.Point([0,0]), new paper.Size(@w, -1600)),
+      new paper.Rectangle(new paper.Point([0,@gapHeight]), new paper.Size(@w, 1600))]
 
+  createCargoShadow: () =>
+    @shadow = new paper.Group()
+    @shadow.translate(@x1, @y)
+    
+  createCargo: () =>
+    @cargo = new paper.Group()
+    @cargo.translate(@x1, @y)
     @addPreviews() if @config.showPreviews
+    
+
 
     @top = new paper.Group()
     @bottom = new paper.Group()
-    @item.addChild(@top)
-    @item.addChild(@bottom)
+    @cargo.addChild(@top)
+    @cargo.addChild(@bottom)
 
     if @config.enableColumnTextures
-      @addRockImages(num, onSprites)
-
-    @item.translate(@x1, @y)
+      @addRockImages(1, @onSprites)
 
   addPreviews: =>
     previewArea = new paper.Group()
     previewArea.addChild(new paper.Path.Rectangle(r)) for r in @rockAreas
-    previewArea.style = {strokeColor: 'white', strokeWidth: 1}
-    @item.addChild(previewArea)
+    previewArea.style = {strokeColor: 'white', strokeWidth: 2}
+    @cargo.addChild(previewArea)
 
   addRockImages: (i, onSprites) =>
 
@@ -71,6 +77,7 @@ class Column
     new paper.Rectangle([@x1, @y], [@w, @gapHeight])
 
   allWalls: =>
+    # as an optimization, this could take the ship pos and only return walls that are facing that way
     [
       new paper.Line([@x1, 0], [@x1, @y], false), # top L
       new paper.Line([@x1 + @w, 0], [@x1 + @w, @y], false), # top R
@@ -80,7 +87,6 @@ class Column
       new paper.Line([@x1 + @w, @y + @gapHeight], [@x1 + @w, 999], false), # bot R
     ]
     
-
   offsetY: (dy) =>
     @y += dy
     @moved = true
@@ -99,15 +105,16 @@ class Column
 
   step: (dt) =>
     @y = clamp(@y, -@gapHeight, @config.height)
-    @item.matrix.translateY = @y
-
-
+    # this don't-translate-by-0 is a major performance boost
+    if (dy = @y - @cargo.matrix.translateY) != 0
+      @cargo.translate(0, dy)
+      @shadow.translate(0, dy)
 
 class window.Columns
   constructor: (config, state) ->
     [@config, @state] = [config, state]
-    @item = new paper.Group()
 
+    # i think this is just a reimplementation of Deferred
     @sprites = []
     spritesReady = false
     waitingForSprites = []
@@ -121,21 +128,30 @@ class window.Columns
         waitingForSprites.push(cb)
 
     w = @config.columnWidth
-    gh1 = @config.startingGap
-    gh2 = @config.ship.collisionRadius * 3
+    gh1 = @config.column.startGapShips * @config.ship.collisionRadius
+    gh2 = @config.column.endGapShips * @config.ship.collisionRadius
 
     @cols = [
-      new Column(config, onSprites, 1, config.introColumn + 0 * w, w, tween(gh1, gh2, 0.0))
-      new Column(config, onSprites, 2, config.introColumn + 1 * w, w, tween(gh1, gh2, 0.1))
-      new Column(config, onSprites, 3, config.introColumn + 2 * w, w, tween(gh1, gh2, 0.2))
-      new Column(config, onSprites, 4, config.introColumn + 3 * w, w, tween(gh1, gh2, 0.4))
-      new Column(config, onSprites, 5, config.introColumn + 4 * w, w, tween(gh1, gh2, 0.6))
-      new Column(config, onSprites, 6, config.introColumn + 5 * w, w, tween(gh1, gh2, 0.7))
-      new Column(config, onSprites, 7, config.introColumn + 6 * w, w, tween(gh1, gh2, 0.8))
-      new Column(config, onSprites, 8, config.introColumn + 7 * w, w, tween(gh1, gh2, 1.0))
+      new Column(config, onSprites, config.introColumn + 0 * w, w, tween(gh1, gh2, 0.0))
+      new Column(config, onSprites, config.introColumn + 1 * w, w, tween(gh1, gh2, 0.1))
+      new Column(config, onSprites, config.introColumn + 2 * w, w, tween(gh1, gh2, 0.2))
+      new Column(config, onSprites, config.introColumn + 3 * w, w, tween(gh1, gh2, 0.4))
+      new Column(config, onSprites, config.introColumn + 4 * w, w, tween(gh1, gh2, 0.6))
+      new Column(config, onSprites, config.introColumn + 5 * w, w, tween(gh1, gh2, 0.7))
+      new Column(config, onSprites, config.introColumn + 6 * w, w, tween(gh1, gh2, 0.8))
+      new Column(config, onSprites, config.introColumn + 7 * w, w, tween(gh1, gh2, 1.0))
       ]
     @introColumn =
       getGap: -> new paper.Rectangle([0, 0], [config.introColumn, 0]) # height = config.height
+
+  createCargoShadows: () =>
+    c.createCargoShadow() for c in @cols
+
+  createCargo: () =>
+    c.createCargo() for c in @cols
+    return
+    
+    @item = new paper.Group()
 
     @item.addChild(c.item) for c in @cols
     @state.onEnter("finish", () => (c.moved = false) for c in @cols)
@@ -192,6 +208,7 @@ class window.Columns
       prev = yy
 
   getColumnNum: (x) ->
+    # 1-based index
     for i in [0 ... @cols.length]
       if @cols[i].x1 <= x < @cols[i].x1 + @cols[i].w
         return i + 1
@@ -204,6 +221,7 @@ class window.Columns
     return null
 
   byNum: (n) ->
+    # n is 1-based index
     @cols[n - 1]
 
   allWalls: () ->

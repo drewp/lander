@@ -1,15 +1,17 @@
 config =
-  showPreviews: false
-  introColumn: 140
+  showPreviews: true
+  introColumn: 240
   exitColumn: 150
   columnCount: 8
   columnWidth: null # computed
   columnLookAhead: 5
-  startingGap: 160
-  width: 1100
-  height: 600
+  startingGap: null # computed
+  column:
+    startGapShips: 8
+    endGapShips: 3
+  width: 1920
+  height: 1200
   menuAnimationTime: 1
-  enableDoors: true
   enableColumnTextures: true
   explodeOnCollision: false
   exhaust:
@@ -22,12 +24,13 @@ config =
     opacityScalePerSec: .80
     maxAlive: 200
   ship:
-    collisionRadius: 15
-    imgScale: .3
-    speed: 120
-    maxTurnPerSec: 360
+    enableShadow: false
+    collisionRadius: 50
+    imgScale: .18
+    speed: 200
+    maxTurnPerSec: 200
   radar:
-    enabled: true
+    enabled: false
     showPoly: false
   jewel:
     count: 2
@@ -85,59 +88,117 @@ window.clamp = (x, lo, hi) -> Math.min(hi, Math.max(lo, x))
 
 window.tween = (a, b, t) -> (a + (b - a) * t)
 
+setupPaperJs = (gameCanvasId) ->
+  canvas = document.getElementById(gameCanvasId)
+  canvas.width = config.width
+  canvas.height = config.height
+  setup = paper.setup(canvas)
+  view = setup.view
+  view
+
+setupSliderNetworking = (websocketUrl, onSlider) ->
+  onMessage = (d) ->
+    if d.sliderEvent
+      se = d.sliderEvent
+      n = parseInt(se.name.replace("slider", ""))
+      onSlider(n, (127 - se.value) / 127)
+  ws = reconnectingWebSocket(websocketUrl, onMessage)
+
 $ ->
 
   stats = new Stats()
   stats.setMode(0)
   $(document.body).append($(stats.domElement).css({position: 'absolute', top: 0, right: 0}))
-  
-  canvas = document.getElementById("game")
-  canvas.width = config.width
-  canvas.height = config.height
-  setup = paper.setup(canvas)
-  view = setup.view
 
-  onMessage = (d) ->
-    if d.sliderEvent
-      se = d.sliderEvent
-      n = parseInt(se.name.replace("slider", ""))
-      columns.byNum(n).setFromSlider((127 - se.value) / 127)
-  ws = reconnectingWebSocket("ws://localhost:9990/sliders", onMessage)
+  view = setupPaperJs("game")
 
+  ws = setupSliderNetworking("ws://localhost:9990/sliders", (n, frac) =>
+    columns.byNum(n).setFromSlider(frac)
+  )
+      
   state = new GameState()
   state.set("menu")
 
   sound = new Sound()
   state.onEnter("explode", => sound.play("explode", () => state.set("menu")))
-  
-  lyr1 = new paper.Layer()
-  rollers = if config.roller.enabled then new Rollers(config, state, lyr1) else null
 
-  lyr2 = new paper.Layer()
-  
+  namedLayer = (name) -> (l = new paper.Layer(); l.name = name; l)
+  layers = {
+    staticBg:       namedLayer('staticBg')       #
+    rollers:        namedLayer('rollers')        #
+    cargoShadow:    namedLayer('cargoShadow')    #
+    cargo:          namedLayer('cargo')          #
+    ship:           namedLayer('ship')           # (with exhaust & lasers)
+    staticFg:       namedLayer('staticFg')       # (doors, not quite static)
+    mechanicLights: namedLayer('mechanicLights') #
+    jewels:         namedLayer('jewels')         #
+    menu:           namedLayer('menu')           #
+  }
+
+  for name, lyr of layers
+    button = $("<button>").addClass("vis").text(name)
+    toggle = ((button,lyr) -> (() ->
+      lyr.visible = not lyr.visible
+      button[0].className = if lyr.visible then "vis" else ""
+    ))(button, lyr)
+    $("#layerSwitches").append(button.click(toggle))
+
+  # Note! We call layer.activate() out here, so you have to create all
+  # your "toplevel" (i.e. layer-based) things during the call that
+  # builds your layer. In async callbacks you can rasterize things
+  # down or whatever, but do it within groups that are correctly
+  # associated with the right layer.
+
+  layers.staticBg.activate()
+  layers.staticBg.visible = true
+  makeStaticBg(config)
+
+  layers.rollers.activate()
+  layers.rollers.visible = true
+  rollers = if config.roller.enabled then new Rollers(config, state) else null
+
   columns = new Columns(config, state)
-  ship = new Ship(config, state, columns)
-  if config.enableDoors
-    enter = new Enter(config, state)
-    exit = new Exit(config, state)
-  else
-    enter = exit = null
-  jewelCounter = new JewelCounter(config, sound, state, ship)
-  exhaust = if config.exhaust.enabled then new Exhaust(config, state, ship.getExhaustSource.bind(ship)) else null
+  layers.cargoShadow.activate()
+  columns.createCargoShadows()
+  layers.cargo.activate()
+  columns.createCargo()
 
+  layers.ship.activate()
+  ship = new Ship(config, state, columns)
+  exhaust = if config.exhaust.enabled then new Exhaust(config, state, ship.getExhaustSource.bind(ship)) else null
+  layers.ship.selected = true
+
+  enter = new Enter(config, state)
+  exit = new Exit(config, state)
+  layers.staticFg.activate()
+  enter.makeStatic()
+  exit.makeStatic()
+  
+  layers.mechanicLights.activate()
+  enter.makeLights()
+  exit.makeLights()
+
+  layers.jewels.activate()
+  jewelCounter = new JewelCounter(config, sound, state, ship)
+
+  layers.menu.activate()
   menu = new Menu(config, state, "main")
 
   animated = [
-              rollers,
-              columns, exhaust, 
-              enter, exit,
-              menu, ship, jewelCounter]
-  
+    rollers
+    columns
+    ship
+    enter
+    exit
+    menu
+    jewelCounter
+    ]  
   setSlidersToColumns = ->
     for col in columns.cols
       msg = {name: "slider"+col.num, value: Math.floor((1 - col.getNormSlider()) * 127)}
       ws.bufferedSendJs(msg)
-        
+
+
   columns.scramble()
   setSlidersToColumns()
 
