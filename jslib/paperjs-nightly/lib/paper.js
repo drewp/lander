@@ -3566,8 +3566,10 @@ var Raster = this.Raster = PlacedItem.extend({
 		var element = this.getElement();
 		if (element) {
 			ctx.globalAlpha = this._opacity;
-			ctx.drawImage(element,
+                        if (element.width > 0 && element.height > 0) {
+  			  ctx.drawImage(element,
 					-this._size.width / 2, -this._size.height / 2);
+                        }
 		}
 	}
 });
