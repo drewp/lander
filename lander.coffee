@@ -34,8 +34,8 @@ config =
     showPoly: false
   jewel:
     count: 2
-    collisionRadius: 15
-    imgScale: .35
+    collisionRadius: 50
+    imgScale: .45
     counterScale: .4
   roller:
     enabled: true

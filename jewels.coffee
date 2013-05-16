@@ -4,22 +4,42 @@ class window.Jewel
     [@config, @sound] = [config, sound]
     @item = new paper.Group([])
 
-    @img = new paper.Raster('img/jewel.png')
-    @img.scale(@config.jewel.imgScale)
-    @item.addChild(@img)
+
+    @frames = []
+    for i in [1..11]
+      shadowChild = new paper.Raster('img/key-jewel-shadow.'+i+'.png')
+      shadowChild.scale(@config.jewel.imgScale)
+      shadowChild.opacity = .7
+
+      img = new paper.Raster('img/key-jewel.'+i+'.png')
+      img.shadowChild = shadowChild
+      img.scale(@config.jewel.imgScale)
+      shadowChild.visible = false
+      img.visible = false
+      @item.addChild(shadowChild)
+      @item.addChild(img)
+      @frames.push(img)
+
 
     @target = target
     @isExiting = false
     @exitingTimer = 0
     @dead = false
 
-    minX = @config.introColumn + @config.jewel.collisionRadius
-    maxX = @config.width - @config.exitColumn - @config.columnWidth - @config.jewel.collisionRadius
-    minY = @config.jewel.collisionRadius
-    maxY = @config.height - @config.jewel.collisionRadius
-    @item.translate(new paper.Point(minX + Math.random() * (maxX - minX), minY + Math.random() * (maxY - minY)))
+    minY = @config.ship.collisionRadius * 3
+    maxY = @config.height - minY 
+    col = _.random(0, @config.columnCount-1)
+    @item.translate(new paper.Point(@config.introColumn + (col + .5) * @config.columnWidth,
+                                    minY + Math.random() * (maxY - minY)))
 
   step: (dt, ship) ->
+    nowMs = +new Date()
+    whichFrame = Math.floor(nowMs / 100) % @frames.length
+    for i in [0...@frames.length]
+        c = @frames[i]
+        c.visible = i == whichFrame
+        c.shadowChild.visible = i == whichFrame
+        
     if @isExiting
       #@exitingTimer += dt
       #t = @exitingTimer / 1
