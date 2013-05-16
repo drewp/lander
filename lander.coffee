@@ -195,7 +195,7 @@ $ ->
     ]  
   setSlidersToColumns = ->
     for col in columns.cols
-      msg = {name: "slider"+col.num, value: Math.floor((1 - col.getNormSlider()) * 127)}
+      msg = {name: "slider"+col.sliderNum, value: Math.floor((1 - col.getNormSlider()) * 127)}
       ws.bufferedSendJs(msg)
 
 

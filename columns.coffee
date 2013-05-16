@@ -10,10 +10,10 @@ class Column
   # |
   # |
   #
-  constructor: (config, onSprites, x1, w, gapHeight) ->
+  constructor: (config, onSprites, sliderNum, x1, w, gapHeight) ->
     [@config, @x1, @w, @gapHeight] = [config, x1, w, gapHeight]
     # item's origin is at the * in the diagram
-    
+    @sliderNum = sliderNum
     @onSprites = onSprites
 
     @y = 200 + Math.random() * 200
@@ -132,14 +132,14 @@ class window.Columns
     gh2 = @config.column.endGapShips * @config.ship.collisionRadius
 
     @cols = [
-      new Column(config, onSprites, config.introColumn + 0 * w, w, tween(gh1, gh2, 0.0))
-      new Column(config, onSprites, config.introColumn + 1 * w, w, tween(gh1, gh2, 0.1))
-      new Column(config, onSprites, config.introColumn + 2 * w, w, tween(gh1, gh2, 0.2))
-      new Column(config, onSprites, config.introColumn + 3 * w, w, tween(gh1, gh2, 0.4))
-      new Column(config, onSprites, config.introColumn + 4 * w, w, tween(gh1, gh2, 0.6))
-      new Column(config, onSprites, config.introColumn + 5 * w, w, tween(gh1, gh2, 0.7))
-      new Column(config, onSprites, config.introColumn + 6 * w, w, tween(gh1, gh2, 0.8))
-      new Column(config, onSprites, config.introColumn + 7 * w, w, tween(gh1, gh2, 1.0))
+      new Column(config, onSprites, 1, config.introColumn + 0 * w, w, tween(gh1, gh2, 0.0))
+      new Column(config, onSprites, 2, config.introColumn + 1 * w, w, tween(gh1, gh2, 0.1))
+      new Column(config, onSprites, 3, config.introColumn + 2 * w, w, tween(gh1, gh2, 0.2))
+      new Column(config, onSprites, 4, config.introColumn + 3 * w, w, tween(gh1, gh2, 0.4))
+      new Column(config, onSprites, 5, config.introColumn + 4 * w, w, tween(gh1, gh2, 0.6))
+      new Column(config, onSprites, 6, config.introColumn + 5 * w, w, tween(gh1, gh2, 0.7))
+      new Column(config, onSprites, 7, config.introColumn + 6 * w, w, tween(gh1, gh2, 0.8))
+      new Column(config, onSprites, 8, config.introColumn + 7 * w, w, tween(gh1, gh2, 1.0))
       ]
     @introColumn =
       getGap: -> new paper.Rectangle([0, 0], [config.introColumn, 0]) # height = config.height
