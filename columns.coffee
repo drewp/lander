@@ -196,7 +196,7 @@ class window.Columns
         return true
     return false
 
-  scramble: ->
+  scramble: =>
     prev = 0
     for col in @cols
       yy = prev
@@ -206,6 +206,10 @@ class window.Columns
       col.setFromSlider(yy)
       col.moved = false
       prev = yy
+
+  setDebug: (ys) =>
+    for col, i in @cols
+      col.y = ys[i]
 
   getColumnNum: (x) ->
     # 1-based index

@@ -1,5 +1,6 @@
 config =
   showPreviews: true
+  debugStart: true
   introColumn: 240
   exitColumn: 150
   columnCount: 8
@@ -30,7 +31,7 @@ config =
     speed: 200
     maxTurnPerSec: 200
   radar:
-    enabled: false
+    enabled: true
     showPoly: false
   jewel:
     count: 2
@@ -199,7 +200,6 @@ $ ->
       msg = {name: "slider"+col.sliderNum, value: Math.floor((1 - col.getNormSlider()) * 127)}
       ws.bufferedSendJs(msg)
 
-
   columns.scramble()
   setSlidersToColumns()
 
@@ -229,3 +229,8 @@ $ ->
   tool.onMouseDrag = (ev) ->
     if tool.currentCol
       tool.currentCol.offsetY(ev.delta.y)
+  if config.debugStart
+    state.set('play')
+    window.columns = columns
+    columns.setDebug([377.58, 307.24, 555.66, 280.19, 200, 200, 200, 200])
+    
