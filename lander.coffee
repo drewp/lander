@@ -37,6 +37,7 @@ config =
     collisionRadius: 50
     imgScale: .45
     counterScale: .4
+    bounceHeight: 10
   roller:
     enabled: true
 

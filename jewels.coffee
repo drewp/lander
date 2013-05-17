@@ -2,8 +2,11 @@
 class window.Jewel
   constructor: (config, sound, target) ->
     [@config, @sound] = [config, sound]
-    @item = new paper.Group([])
+    @pos = new paper.Group([])
 
+    @bounce = new paper.Group([])
+    @pos.addChild(@bounce)
+    @bouncePhase = Math.random()
 
     @frames = []
     for i in [1..11]
@@ -16,8 +19,8 @@ class window.Jewel
       img.scale(@config.jewel.imgScale)
       shadowChild.visible = false
       img.visible = false
-      @item.addChild(shadowChild)
-      @item.addChild(img)
+      @bounce.addChild(shadowChild)
+      @bounce.addChild(img)
       @frames.push(img)
 
 
@@ -29,8 +32,11 @@ class window.Jewel
     minY = @config.ship.collisionRadius * 3
     maxY = @config.height - minY 
     col = _.random(0, @config.columnCount-1)
-    @item.translate(new paper.Point(@config.introColumn + (col + .5) * @config.columnWidth,
+    @pos.translate(new paper.Point(@config.introColumn + (col + .5) * @config.columnWidth,
                                     minY + Math.random() * (maxY - minY)))
+
+  remove: () =>
+    @pos.remove()
 
   step: (dt, ship) ->
     nowMs = +new Date()
@@ -39,21 +45,24 @@ class window.Jewel
         c = @frames[i]
         c.visible = i == whichFrame
         c.shadowChild.visible = i == whichFrame
+
+    @bounce.matrix.reset()
+    @bounce.translate(0, Math.sin(nowMs / 300 + 6.28 * @bouncePhase) * @config.jewel.bounceHeight)
         
     if @isExiting
       #@exitingTimer += dt
       #t = @exitingTimer / 1
-      pos = @item.matrix.translation
+      pos = @pos.matrix.translation
       target = @target.item.matrix.translation
       if pos.subtract(target).length < 25
         @dead = true
-        @item.remove()
+        @pos.remove()
         @target.onJewelCollected()
       target = target.subtract(pos).normalize().multiply(25)
-      @item.translate(target) #new paper.Point((target.x * t * t) - pos.x, (target.y * t * t) - pos.y)
+      @pos.translate(target) #new paper.Point((target.x * t * t) - pos.x, (target.y * t * t) - pos.y)
     else
       shipPos = ship.item.matrix.translation
-      jewelPos = @item.matrix.translation
+      jewelPos = @pos.matrix.translation
       if shipPos.subtract(jewelPos).length <= @config.ship.collisionRadius + @config.jewel.collisionRadius
         @sound.play("coin")
         @isExiting = true
@@ -79,7 +88,7 @@ class window.JewelCounter
     @item.matrix.reset()
     @item.translate(@config.width - 57, 30)
     @collected = 0
-    j.item.remove() for j in @jewels
+    j.remove() for j in @jewels
     @jewels = [ ]
     for i in [0 ... @config.jewel.count]
       @jewels[i] = new Jewel(@config, @sound, this)
