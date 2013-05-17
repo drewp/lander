@@ -28,8 +28,8 @@ config =
     enableShadow: false
     collisionRadius: 50
     imgScale: .18
-    speed: 200
-    maxTurnPerSec: 200
+    speed: 120
+    maxTurnPerSec: 360
   radar:
     enabled: true
     showPoly: false
@@ -229,7 +229,7 @@ $ ->
     if tool.currentCol
       tool.currentCol.offsetY(ev.delta.y)
   if config.debugStart
-    state.set('finish')
+    state.set('play')
     window.columns = columns
     columns.setDebug([377.58, 307.24, 555.66, 280.19, 200, 200, 200, 200])
     

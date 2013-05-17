@@ -37,17 +37,18 @@ class window.Ship
    
     if @config.showPreviews
       @collisionCircle = new paper.Path.Circle([0,0], @config.ship.collisionRadius)
-      @collisionCircle.style = {strokeColor: 'white'}
+      @collisionCircle.style = {} #{strokeColor: 'white'}
       @item.addChild(@collisionCircle)
-  
-      @flyTowardPreview = new paper.Path.Circle(@flyToward, 9)
-      @flyTowardPreview.style = {strokeColor: 'white'}
 
-      @idealPreview = new paper.Path.Line([0,0], [0,0])
-      @idealPreview.style = {strokeColor: 'green'}
+      if false
+        @flyTowardPreview = new paper.Path.Circle(@flyToward, 9)
+        @flyTowardPreview.style = {strokeColor: 'white'}
 
-      @currentPreview = new paper.Path.Line([0,0], [0,0])
-      @currentPreview.style = {strokeColor: 'blue'}
+        @idealPreview = new paper.Path.Line([0,0], [0,0])
+        @idealPreview.style = {strokeColor: 'green'}
+
+        @currentPreview = new paper.Path.Line([0,0], [0,0])
+        @currentPreview.style = {strokeColor: 'blue'}
 
     @radar = if @config.radar.enabled then new Radar(@config) else null
     @state.onEnter("menu", @resetPosition)
@@ -67,7 +68,7 @@ class window.Ship
   # Used by rebuildPath. Moves a point away from the column. The direction that
   # the point is moved depends on which direction the path is going.
   getOffsetPoint: (p, moveForward) ->
-    dist = @config.ship.collisionRadius * 2
+    dist = @config.ship.collisionRadius * .6
     point = new paper.Point(p)
     if @forward
       point.y -= dist
@@ -91,22 +92,22 @@ class window.Ship
     if @forward
       if colNum > 1
         prevGap = @columns.byNum(colNum - 1).getGap()
-        if colGap.bottomLeft.y > prevGap.bottomRight.y > colGap.topLeft.y + @config.ship.collisionRadius * 2
+        if colGap.bottomLeft.y > prevGap.bottomRight.y > colGap.topLeft.y + @config.ship.collisionRadius * 1.2
           @path[@path.length] = @getOffsetPoint(prevGap.bottomRight, 1)
       @path[@path.length] = @getOffsetPoint(colGap.bottomLeft.add(colGap.bottomRight).divide(2), 0)
       if colNum < 8
         nextGap = @columns.byNum(colNum + 1).getGap()
-        if colGap.bottomRight.y > nextGap.bottomLeft.y > colGap.topRight.y + @config.ship.collisionRadius * 2
+        if colGap.bottomRight.y > nextGap.bottomLeft.y > colGap.topRight.y + @config.ship.collisionRadius * 1.2
           @path[@path.length] = @getOffsetPoint(nextGap.bottomLeft, -1)
     else
       if colNum < 8
         prevGap = @columns.byNum(colNum + 1).getGap()
-        if colGap.topRight.y < prevGap.topLeft.y < colGap.bottomRight.y - @config.ship.collisionRadius * 2
+        if colGap.topRight.y < prevGap.topLeft.y < colGap.bottomRight.y - @config.ship.collisionRadius * 1.2
           @path[@path.length] = @getOffsetPoint(prevGap.topLeft, 1)
       @path[@path.length] = @getOffsetPoint(colGap.topRight.add(colGap.topLeft).divide(2), 0)
       if colNum > 1
         nextGap = @columns.byNum(colNum - 1).getGap()
-        if colGap.topLeft.y < nextGap.topRight.y < colGap.bottomLeft.y - @config.ship.collisionRadius * 2
+        if colGap.topLeft.y < nextGap.topRight.y < colGap.bottomLeft.y - @config.ship.collisionRadius * 1.2
           @path[@path.length] = @getOffsetPoint(nextGap.topRight, -1)
 
   # Determines the point the ship should be flying towards. The ship will fly
@@ -145,9 +146,9 @@ class window.Ship
 
     @rebuildPath(colNum)
 
-    @pathObj.removeSegments()
-    @path.map((s) => @pathObj.add(s))
-    @pathObj.style = {strokeWidth: 3, strokeColor: 'red'}
+    #@pathObj.removeSegments()
+    #@path.map((s) => @pathObj.add(s))
+    #@pathObj.style = {strokeWidth: 3, strokeColor: 'red'}
     
     @pathIndex = if @pathIndex >= @path.length then @path.length - 1 else @pathIndex
     @flyToward = @path[@pathIndex]

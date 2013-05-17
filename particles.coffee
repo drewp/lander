@@ -4,7 +4,7 @@ class window.Exhaust
     @config = config
     @getSource = getSource
 
-    @img = new paper.Raster('img/smoke1.png')
+    @img = new paper.Raster('img/smoke2.png')
     @img.opacity = @config.exhaust.opacity
 
     @pts = []
