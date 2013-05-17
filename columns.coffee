@@ -244,6 +244,6 @@ class window.Columns
           (c.moved = false) for c in @cols
           @state.set("menu-away")
       when "finish"
-        if @state.elapsedMs() > 1000 && @checkMovement()
+        if @state.elapsedMs() > 4000 && @checkMovement()
           (c.moved = false) for c in @cols
           @state.set("menu")

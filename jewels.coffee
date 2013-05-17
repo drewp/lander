@@ -88,6 +88,9 @@ class window.JewelCounter
     @item.matrix.reset()
     @item.translate(@config.width - 57, 30)
     @collected = 0
+    # failure to make these jewels within a group that was created in
+    # the constructor is causing the jewels to land in the wrong
+    # paperjs layer
     j.remove() for j in @jewels
     @jewels = [ ]
     for i in [0 ... @config.jewel.count]

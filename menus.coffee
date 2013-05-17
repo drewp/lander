@@ -3,42 +3,50 @@ class window.Menu
   constructor: (config, state) ->
     [@config, @state] = [config, state]
 
-    top = (@config.height / 2) - 128
-    @item = new paper.Group([])
-    @title = new paper.PointText(@config.width / 2, top)
-    @title.style = { fontSize: 64, fillColor: "white" }
-    @title.getJustification = () -> "center"
-    @text = new paper.PointText(@config.width / 2, top + 64)
-    @text.style = { fontSize: 30, fillColor: "white" }
-    @text.getJustification = () -> "center"
-    @item.addChild(@title)
-    @item.addChild(@text)
+    @mask = new paper.Path.Rectangle(0, 0, @config.width, @config.height)
+    @mask.style = {fillColor: 'black'}
+    @mask.opacity = 0
+
+    @item = new paper.Group()
+    @overlay = {
+      title: new paper.Raster("img/overlay/title.png")
+      lose: new paper.Raster("img/overlay/lose.png")
+      win: new paper.Raster("img/overlay/win.png")
+    }
+    @item.addChild(x) for _, x of @overlay
+    @item.translate(@config.width / 2, @config.height / 2)
+   
+    @item = new paper.Group([@item])
+    
+  select: (name, dt) =>
+    if name?
+      @item.visible = true
+      o.visible = (name == n) for n, o of @overlay
+      @maskFade(1, dt)
+    else
+      @item.visible = false
+      @maskFade(-1, dt)
+
+  maskFade: (direction, dt) =>
+    @mask.opacity = clamp(@mask.opacity + direction * 2 * dt, 0, .5)
 
   step: (dt) ->
     switch @state.get()
       when "menu"
-        @item.visible = true
-        @title.content = "Lander"
-        @text.content = "Move any slider to start"
-        
-        @item.setMatrix(new paper.Matrix().translate([0, 0]))
-      when "menu-away"
-        @item.visible = true
-        @title.content = "Lander"
-        @text.content = "Move any slider to start"
+        @item.matrix.reset()
+        @select("title", dt)
 
+      when "menu-away"
         sec = @state.elapsedMs() / 1000
-        
         @item.setMatrix(new paper.Matrix().translate([
           @config.width * 1.3 * (sec / @config.menuAnimationTime),
           0]))
+        @maskFade(-1, dt)
         if sec > @config.menuAnimationTime
           @state.set("play")
       when "finish"
-        @item.visible = true
-        @title.content = "You won!"
-        @text.content = "Move any slider for a new game"
-        @item.setMatrix(new paper.Matrix().translate([0, 0]))
+        @item.matrix.reset()
+        @select("win", dt)
       else
-        @item.visible = false        
+        @select(null, dt)
       

@@ -1,6 +1,6 @@
 config =
   showPreviews: true
-  debugStart: true
+  debugStart: false
   introColumn: 240
   exitColumn: 150
   columnCount: 8
@@ -168,7 +168,6 @@ $ ->
   layers.ship.activate()
   ship = new Ship(config, state, columns)
   exhaust = if config.exhaust.enabled then new Exhaust(config, state, ship.getExhaustSource.bind(ship)) else null
-  layers.ship.selected = true
 
   enter = new Enter(config, state)
   exit = new Exit(config, state)
@@ -230,7 +229,7 @@ $ ->
     if tool.currentCol
       tool.currentCol.offsetY(ev.delta.y)
   if config.debugStart
-    state.set('play')
+    state.set('finish')
     window.columns = columns
     columns.setDebug([377.58, 307.24, 555.66, 280.19, 200, 200, 200, 200])
     
