@@ -37,10 +37,12 @@ class window.Exit
     
 
   makeStatic: () =>
-    @bottom = new paper.Raster("img/exitdoor-bottom.png")
-    @top = new paper.Raster("img/exitdoor-top.png")
-    ex = new paper.Raster("img/exit.png")
-    @align(ex, [ex, @bottom, @top])
+    bottomImg = new paper.Raster("img/exitdoor-bottom.png")
+    topImg    = new paper.Raster("img/exitdoor-top.png")
+    @bottom = new paper.Group([bottomImg])
+    @top = new paper.Group([topImg])
+    ex      = new paper.Raster("img/exit.png")
+    @align(ex, [ex, bottomImg, topImg])
 
   makeLights: () =>
     @align(@lights = new paper.Raster("img/exit-lights.png"))
@@ -49,7 +51,7 @@ class window.Exit
     img.onLoad = () =>
       objs = objs || [img]
       for obj in objs
-        obj.translate(new paper.Point(45, 0))
+        obj.translate(new paper.Point(75, 0))
         obj.scale(@config.height / img.height)
         obj.translate(@exitBox.leftCenter)
 
@@ -60,10 +62,13 @@ class window.Exit
     else
       @lights.visible = false
 
-    if @state.get() == "play-unlocked"
-      @bottom.matrix.translateY = clamp(@state.elapsedMs() / 10, 0, 60)
-      @top.matrix.translateY = -@bottom.matrix.translateY
-    else
-      @top.matrix.translateY = 0
-      @bottom.matrix.translateY = 0
+    switch @state.get()
+      when "play-unlocked"
+        @bottom.matrix.translateY = clamp(@state.elapsedMs() / 10, 0, 70)
+        @top.matrix.translateY = -@bottom.matrix.translateY
+      when "finish"
+        0
+      else
+        @top.matrix.translateY = 0
+        @bottom.matrix.translateY = 0
     
